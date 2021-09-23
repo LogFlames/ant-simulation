@@ -1,34 +1,36 @@
+# Since we use precompiled binaries we want to include them in git for convenience, and all intermediate files are stored in the bin/intermediates folder so we can easily exclude them.
+
 # Prerequisites
-*.d
+# *.d
 
 # Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# *.slo
+# *.lo
+# *.o
+# *.obj
 
 # Precompiled Headers
-*.gch
-*.pch
+# *.gch
+# *.pch
 
 # Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
+# *.so
+# *.dylib
+# *.dll
 
 # Fortran module files
-*.mod
-*.smod
+# *.mod
+# *.smod
 
 # Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
+# *.lai
+# *.la
+# *.a
+# *.lib
 
 # Executables
-*.exe
-*.out
-*.app
+# *.exe
+# *.out
+# *.app
 
 bin/
