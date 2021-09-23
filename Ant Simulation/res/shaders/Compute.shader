@@ -48,11 +48,11 @@ void main() {
     //agents[ind].angleVelocity += rand(agents[ind].position) * 0.000001;
     agents[ind].angleVelocity = 0.0;
 
-    if (abs(agents[ind].position.x - u_TextureSize.x / 2) < 200.0 && abs(agents[ind].position.y - u_TextureSize.y / 2) < 200.0) {
+    if (abs(agents[ind].position.x - u_TextureSize.x / 2) < 20.0 && abs(agents[ind].position.y - u_TextureSize.y / 2) < 20.0) {
         agents[ind].hasFood = 0;
     }
 
-    agents[ind].angle += angleChange * 25.0 + rand(agents[ind].position) * 0.0005;
+    agents[ind].angle += angleChange * 10.0 + rand(agents[ind].position) * 0.0005;
     //agents[ind].angle += angleChange * 10.0;
 
     if (agents[ind].position.x < 0.0)
@@ -81,12 +81,14 @@ void main() {
     if (mapColor == vec4(128.0 / 255.0, 128.0 / 255.0, 128.0 / 255.0, 1.0)) 
     {
         agents[ind].position = vec2(pixel_coords);
-        agents[ind].angle = rand(agents[ind].position) * 2.0 * PI;
+        agents[ind].angle += PI + ((rand(agents[ind].position) - 0.5) * PI);
     }
     else if (mapColor == vec4(1.0, 0.0, 0.0, 1.0) && agents[ind].hasFood == 0)
     {
         imageStore(img_Map, new_pixel_coords, vec4(0.0));
         agents[ind].hasFood = 1;
+        // TEMP
+        agents[ind].angle += PI;
     }
 
     vec4 pixel = vec4(0.0, 1.0, 0.0, 1.0);
@@ -95,13 +97,13 @@ void main() {
         pixel = vec4(1.0, 0.0, 0.0, 1.0);
     }
     
-    imageStore(img_TrailMap, pixel_coords, pixel);
+    imageStore(img_TrailMap, pixel_coords, vec4(pixel.rgb / 2.0, 1.0));
     imageStore(img_Agents, pixel_coords, pixel);
 }
 
 float rand(vec2 co)
 {
-    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453 + u_Time / 1631866109000.0);
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
 vec4 sence(ivec2 pos)

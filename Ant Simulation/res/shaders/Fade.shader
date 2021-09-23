@@ -8,16 +8,16 @@ void main() {
     ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 
     vec4 pixel = 0.5 *   imageLoad(img_TrailMap, pixel_coords);
-    pixel     += 0.063 * imageLoad(img_TrailMap, pixel_coords + ivec2(1, 0));
+    pixel     += 0.062 * imageLoad(img_TrailMap, pixel_coords + ivec2(1, 0));
     pixel     += 0.063 * imageLoad(img_TrailMap, pixel_coords + ivec2(-1, 0));
-    pixel     += 0.063 * imageLoad(img_TrailMap, pixel_coords + ivec2(0, 1));
+    pixel     += 0.062 * imageLoad(img_TrailMap, pixel_coords + ivec2(0, 1));
     pixel     += 0.063 * imageLoad(img_TrailMap, pixel_coords + ivec2(0, -1));
-    pixel     += 0.063 * imageLoad(img_TrailMap, pixel_coords + ivec2(1, 1));
+    pixel     += 0.062 * imageLoad(img_TrailMap, pixel_coords + ivec2(1, 1));
     pixel     += 0.063 * imageLoad(img_TrailMap, pixel_coords + ivec2(-1, -1));
-    pixel     += 0.063 * imageLoad(img_TrailMap, pixel_coords + ivec2(-1, 1));
+    pixel     += 0.062 * imageLoad(img_TrailMap, pixel_coords + ivec2(-1, 1));
     pixel     += 0.063 * imageLoad(img_TrailMap, pixel_coords + ivec2(1, -1));
 
     //pixel /= 9;
-    pixel *= 0.99;
+    pixel *= 0.999;
     imageStore(img_TrailMap, pixel_coords, pixel);
 }

@@ -15,7 +15,7 @@
 
 #define PI 3.14159265358979f
 
-#define AGENT_COUNT 65536
+#define AGENT_COUNT 32768
 
 static void GLClearError()
 {
@@ -237,7 +237,7 @@ int main(void)
     stbi_set_flip_vertically_on_load(true);
 
     int mapWidth, mapHeight, mapNrChannels;
-    unsigned char* data = stbi_load("res/textures/Map_food_smiley.png", &mapWidth, &mapHeight, &mapNrChannels, STBI_rgb_alpha);
+    unsigned char* data = stbi_load("res/textures/Map_food_smiley_with_walls.png", &mapWidth, &mapHeight, &mapNrChannels, STBI_rgb_alpha);
 
     if (!data) {
         std::cout << "Failed to load map texture" << std::endl;
@@ -423,7 +423,7 @@ int main(void)
         
         GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < 4; i++) {
             {
                 GLCall(glUseProgram(fadeProgram));
                 GLCall(glDispatchCompute(textureWidth / 16, textureHeight / 16, 1));
