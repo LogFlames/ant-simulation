@@ -15,7 +15,7 @@
 
 #define PI 3.14159265358979f
 
-#define AGENT_COUNT 32768
+#define AGENT_COUNT 131072
 
 static void GLClearError()
 {

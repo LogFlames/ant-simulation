@@ -42,17 +42,19 @@ void main() {
     float f_left = (agents[ind].hasFood == 1 ? left.g : left.r);
     float f_right = (agents[ind].hasFood == 1 ? right.g : right.r);
     float f_middle = (agents[ind].hasFood == 1 ? middle.g : middle.r);
+    float f_turning = f_left - f_right;
 
-    float angleChange = (PI / 6.0) * f_left - (PI / 6.0) * f_right + agents[ind].angleVelocity;
+    float angleChange = (PI / 6.0) * f_turning + agents[ind].angleVelocity;
     //agents[ind].angleVelocity += rand(agents[ind].position) * 0.0001;
     //agents[ind].angleVelocity += rand(agents[ind].position) * 0.000001;
     agents[ind].angleVelocity = 0.0;
 
-    if (abs(agents[ind].position.x - u_TextureSize.x / 2) < 20.0 && abs(agents[ind].position.y - u_TextureSize.y / 2) < 20.0) {
+    if (abs(agents[ind].position.x - u_TextureSize.x / 2) < 20.0 && abs(agents[ind].position.y - u_TextureSize.y / 2) < 20.0 && agents[ind].hasFood == 1) {
         agents[ind].hasFood = 0;
+        agents[ind].angle += PI;
     }
 
-    agents[ind].angle += angleChange * 10.0 + rand(agents[ind].position) * 0.0005;
+    agents[ind].angle += angleChange * 2.0 + rand(agents[ind].position) * 0.0009;
     //agents[ind].angle += angleChange * 10.0;
 
     if (agents[ind].position.x < 0.0)
@@ -96,8 +98,11 @@ void main() {
     {
         pixel = vec4(1.0, 0.0, 0.0, 1.0);
     }
-    
-    imageStore(img_TrailMap, pixel_coords, vec4(pixel.rgb / 2.0, 1.0));
+
+    vec4 oldValue = imageLoad(img_TrailMap, pixel_coords);
+    vec4 newValue = vec4(clamp(oldValue.rgb + pixel.rgb / 10.0, 0.0, 1.0), 1.0);
+
+    imageStore(img_TrailMap, pixel_coords, newValue);
     imageStore(img_Agents, pixel_coords, pixel);
 }
 
