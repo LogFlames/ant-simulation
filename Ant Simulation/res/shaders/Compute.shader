@@ -32,9 +32,12 @@ void main() {
     uint ind = gl_GlobalInvocationID.x + u_ArrayOffset;
     ivec2 pixel_coords = ivec2(agents[ind].position);
 
+    // Move by current angle and speed
     agents[ind].position += vec2(cos(agents[ind].angle), sin(agents[ind].angle)) * 60.0 / 60.0;
     ivec2 new_pixel_coords = ivec2(agents[ind].position);
 
+
+    // Sence feromone concentration
     vec4 left =   sence(ivec2(agents[ind].position + vec2(cos(agents[ind].angle + PI / 6.0), sin(agents[ind].angle + PI / 6.0)) * senceDistance));
     vec4 middle = sence(ivec2(agents[ind].position + vec2(cos(agents[ind].angle           ), sin(agents[ind].angle           )) * senceDistance));
     vec4 right =  sence(ivec2(agents[ind].position + vec2(cos(agents[ind].angle - PI / 6.0), sin(agents[ind].angle - PI / 6.0)) * senceDistance));
@@ -45,18 +48,13 @@ void main() {
     float f_turning = f_left - f_right;
 
     float angleChange = (PI / 6.0) * f_turning + agents[ind].angleVelocity;
-    //agents[ind].angleVelocity += rand(agents[ind].position) * 0.0001;
-    //agents[ind].angleVelocity += rand(agents[ind].position) * 0.000001;
     agents[ind].angleVelocity = 0.0;
 
-    if (abs(agents[ind].position.x - u_TextureSize.x / 2) < 20.0 && abs(agents[ind].position.y - u_TextureSize.y / 2) < 20.0 && agents[ind].hasFood == 1) {
-        agents[ind].hasFood = 0;
-        agents[ind].angle += PI;
-    }
-
-    agents[ind].angle += angleChange * 2.0 + rand(agents[ind].position) * 0.0009;
+    // Turn by anglechange
+    agents[ind].angle += angleChange * 1.0 + (rand(agents[ind].position) - 0.5) * 0.05;
     //agents[ind].angle += angleChange * 10.0;
 
+    // Bounce on map borders - horizontal
     if (agents[ind].position.x < 0.0)
     {
        agents[ind].position.x = 0.0;
@@ -68,6 +66,8 @@ void main() {
         agents[ind].angle = (rand(agents[ind].position) + 0.5) * PI;
     }
 
+
+    // Bounce on map borders - vertical
     if (agents[ind].position.y < 0.0)
     {
         agents[ind].position.y = 0.0;
@@ -79,19 +79,27 @@ void main() {
         agents[ind].angle = (rand(agents[ind].position) + 1.0) * PI;
     }
 
+    // Interactions with map
     vec4 mapColor = imageLoad(img_Map, new_pixel_coords);
-    if (mapColor == vec4(128.0 / 255.0, 128.0 / 255.0, 128.0 / 255.0, 1.0)) 
+    if (mapColor == vec4(128.0 / 255.0, 128.0 / 255.0, 128.0 / 255.0, 1.0))  // Wall collision
     {
         agents[ind].position = vec2(pixel_coords);
         agents[ind].angle += PI + ((rand(agents[ind].position) - 0.5) * PI);
     }
-    else if (mapColor == vec4(1.0, 0.0, 0.0, 1.0) && agents[ind].hasFood == 0)
+    else if (mapColor == vec4(1.0, 0.0, 0.0, 1.0) && agents[ind].hasFood == 0) // Food collision
     {
         imageStore(img_Map, new_pixel_coords, vec4(0.0));
         agents[ind].hasFood = 1;
         // TEMP
         agents[ind].angle += PI;
     }
+    else if (mapColor == vec4(100.0 / 255.0, 100.0 / 255.0, 100.0 / 255.0, 1.0) && agents[ind].hasFood == 1) // Home collision
+    {
+        agents[ind].hasFood = 0;
+        agents[ind].angle += PI;
+    }
+
+    // Show agent on map
 
     vec4 pixel = vec4(0.0, 1.0, 0.0, 1.0);
     if (agents[ind].hasFood == 1)

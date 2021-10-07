@@ -15,7 +15,10 @@
 
 #define PI 3.14159265358979f
 
-#define AGENT_COUNT 131072
+#define AGENT_COUNT 1024
+
+#define WIDTH 256
+#define HEIGHT 144
 
 static void GLClearError()
 {
@@ -179,11 +182,8 @@ int main(void)
     float lastTime = 0.0f;
     float deltaTime;
 
-    int screenWidth = 2560;
-    int screenHeight = 1440;
-
-    int textureWidth = 2560;
-    int textureHeight = 1440;
+    int screenWidth = WIDTH;
+    int screenHeight = HEIGHT;
 
     for (unsigned int i = 0; i < AGENT_COUNT; i++)
     {
@@ -191,11 +191,11 @@ int main(void)
         //float y = static_cast<float>(std::rand() % (textureHeight * 100)) / 100.0f;
         //x = textureWidth / 2.0f;
         //y = textureHeight / 2.0f;
-        float distance = std::sqrt(static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX)) * static_cast<float>(std::min(textureWidth, textureHeight) / 2);
+        float distance = std::sqrt(static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX)) * static_cast<float>(std::min(WIDTH, HEIGHT) / 2);
         float angle = static_cast<float>(std::rand() % static_cast<int>(2.0f * PI * 1000.0f)) / 1000.0f;
-        float x = std::cos(angle) * distance + static_cast<float>(textureWidth) / 2.0f;
-        float y = std::sin(angle) * distance + static_cast<float>(textureHeight) / 2.0f;
-        agents[i] = { { textureWidth / 2.0f, textureHeight / 2.0f }, angle + 1.0f * PI / 3.0f, 0.0f, 0 };
+        float x = std::cos(angle) * distance + static_cast<float>(WIDTH) / 2.0f;
+        float y = std::sin(angle) * distance + static_cast<float>(HEIGHT) / 2.0f;
+        agents[i] = { { WIDTH / 2.0f, HEIGHT / 2.0f }, angle + 1.0f * PI / 3.0f, 0.0f, 0 };
         //agents[i] = { { x, y }, static_cast<float>(std::rand() % static_cast<int>(2.0f * PI * 1000.0f)) / 1000.0f, 0.0f, 0 };
     }
 
@@ -212,7 +212,7 @@ int main(void)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(screenWidth, screenHeight, "Ants", NULL, NULL);
+    window = glfwCreateWindow(1600, 900, "Ants", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -237,14 +237,14 @@ int main(void)
     stbi_set_flip_vertically_on_load(true);
 
     int mapWidth, mapHeight, mapNrChannels;
-    unsigned char* data = stbi_load("res/textures/Map_food_smiley_with_walls.png", &mapWidth, &mapHeight, &mapNrChannels, STBI_rgb_alpha);
+    unsigned char* data = stbi_load("res/textures/Map_food_smiley_small.png", &mapWidth, &mapHeight, &mapNrChannels, STBI_rgb_alpha);
 
     if (!data) {
         std::cout << "Failed to load map texture" << std::endl;
     }
 
-    ASSERT(mapWidth == textureWidth);
-    ASSERT(mapHeight == textureHeight);
+    ASSERT(mapWidth == WIDTH);
+    ASSERT(mapHeight == HEIGHT);
 
     // Texture
 
@@ -270,7 +270,7 @@ int main(void)
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, textureWidth, textureHeight, 0, GL_RGBA, GL_FLOAT, nullptr));
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WIDTH, HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr));
 
     GLCall(glBindImageTexture(0, tex_TrailMap, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
 
@@ -282,7 +282,7 @@ int main(void)
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, textureWidth, textureHeight, 0, GL_RGBA, GL_FLOAT, nullptr));
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WIDTH, HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr));
 
     GLCall(glBindImageTexture(1, tex_Agents, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
 
@@ -365,7 +365,7 @@ int main(void)
     
     GLCall(int computeTextureSizeLocation = glGetUniformLocation(computeProgram, "u_TextureSize"));
     ASSERT(computeTextureSizeLocation != -1);
-    GLCall(glUniform2f(computeTextureSizeLocation, static_cast<float>(textureWidth), static_cast<float>(textureHeight)));
+    GLCall(glUniform2f(computeTextureSizeLocation, static_cast<float>(WIDTH), static_cast<float>(HEIGHT)));
 
     GLCall(int arrayOffsetLocation = glGetUniformLocation(computeProgram, "u_ArrayOffset"));
     ASSERT(arrayOffsetLocation != -1);
@@ -409,7 +409,7 @@ int main(void)
 
     GLCall(int textureSizeLocation = glGetUniformLocation(quadProgram, "u_TextureSize"));
     ASSERT(textureSizeLocation != -1);
-    GLCall(glUniform2f(textureSizeLocation, static_cast<float>(textureWidth), static_cast<float>(textureHeight)));
+    GLCall(glUniform2f(textureSizeLocation, static_cast<float>(WIDTH), static_cast<float>(HEIGHT)));
 
 
     while (!glfwWindowShouldClose(window))
@@ -426,14 +426,14 @@ int main(void)
         for (int i = 0; i < 4; i++) {
             {
                 GLCall(glUseProgram(fadeProgram));
-                GLCall(glDispatchCompute(textureWidth / 16, textureHeight / 16, 1));
+                GLCall(glDispatchCompute(WIDTH / 16, HEIGHT / 16, 1));
             }
 
             GLCall(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
 
             {
                 GLCall(glUseProgram(clearProgram));
-                GLCall(glDispatchCompute(textureWidth / 16, textureHeight / 16, 1));
+                GLCall(glDispatchCompute(WIDTH / 16, HEIGHT/ 16, 1));
             }
 
             GLCall(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
