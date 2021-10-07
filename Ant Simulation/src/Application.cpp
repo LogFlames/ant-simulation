@@ -20,6 +20,8 @@
 #define WIDTH 256
 #define HEIGHT 144
 
+#define MAP_PATH "res/textures/Map_food_smiley_256x144.png"
+
 static void GLClearError()
 {
     while (glGetError() != GL_NO_ERROR);
@@ -237,7 +239,7 @@ int main(void)
     stbi_set_flip_vertically_on_load(true);
 
     int mapWidth, mapHeight, mapNrChannels;
-    unsigned char* data = stbi_load("res/textures/Map_food_smiley_small.png", &mapWidth, &mapHeight, &mapNrChannels, STBI_rgb_alpha);
+    unsigned char* data = stbi_load(MAP_PATH, &mapWidth, &mapHeight, &mapNrChannels, STBI_rgb_alpha);
 
     if (!data) {
         std::cout << "Failed to load map texture" << std::endl;
@@ -439,12 +441,12 @@ int main(void)
             GLCall(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
 
             {
-                for (int round = 0; round < (AGENT_COUNT / 1024 / work_grp_cnt[0]) + 1; round++)
+                for (int round = 0; round < (AGENT_COUNT / 8 / work_grp_cnt[0]) + 1; round++)
                 {
                     GLCall(glUseProgram(computeProgram));
                     GLCall(glUniform1f(timeLocation, currentTime));
                     GLCall(glUniform1i(arrayOffsetLocation, round * work_grp_cnt[0]));
-                    GLCall(glDispatchCompute(std::min(AGENT_COUNT / 1024 - work_grp_cnt[0] * round, work_grp_cnt[0]), 1, 1));
+                    GLCall(glDispatchCompute(std::min(AGENT_COUNT / 8 - work_grp_cnt[0] * round, work_grp_cnt[0]), 1, 1));
                 }
             }
         }

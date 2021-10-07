@@ -1,5 +1,5 @@
 #version 450 core
-layout(local_size_x = 1024, local_size_y = 1) in;
+layout(local_size_x = 8, local_size_y = 1) in;
 
 struct Agent
 {
@@ -22,10 +22,13 @@ uniform float u_Time;
 uniform vec2 u_TextureSize;
 uniform int u_ArrayOffset;
 
-const float PI = 3.1415926535;
+const float PI = 3.14159265358979;
+const float PHI = 1.61803398874989484820459;
+
 const float senceDistance = 4.0;
 
 float rand(vec2 co);
+float gold_noise(vec2 xy, float seed);
 vec4 sence(ivec2 pos);
 
 void main() {
@@ -51,19 +54,19 @@ void main() {
     agents[ind].angleVelocity = 0.0;
 
     // Turn by anglechange
-    agents[ind].angle += angleChange * 1.0 + (rand(agents[ind].position) - 0.5) * 0.05;
+    agents[ind].angle += angleChange * 1.0 + (gold_noise(agents[ind].position, u_Time) - 0.5) * 0.05;
     //agents[ind].angle += angleChange * 10.0;
 
     // Bounce on map borders - horizontal
     if (agents[ind].position.x < 0.0)
     {
        agents[ind].position.x = 0.0;
-       agents[ind].angle = (rand(agents[ind].position) - 0.5) * PI;
+       agents[ind].angle = (gold_noise(agents[ind].position, u_Time) - 0.5) * PI;
     }
     else if (agents[ind].position.x >= u_TextureSize.x)
     {
         agents[ind].position.x = u_TextureSize.x - 1.0;
-        agents[ind].angle = (rand(agents[ind].position) + 0.5) * PI;
+        agents[ind].angle = (gold_noise(agents[ind].position, u_Time) + 0.5) * PI;
     }
 
 
@@ -71,12 +74,12 @@ void main() {
     if (agents[ind].position.y < 0.0)
     {
         agents[ind].position.y = 0.0;
-        agents[ind].angle = (rand(agents[ind].position)) * PI;
+        agents[ind].angle = (gold_noise(agents[ind].position, u_Time)) * PI;
     }
     else if (agents[ind].position.y >= u_TextureSize.y)
     {
         agents[ind].position.y = u_TextureSize.y - 1.0;
-        agents[ind].angle = (rand(agents[ind].position) + 1.0) * PI;
+        agents[ind].angle = (gold_noise(agents[ind].position, u_Time) + 1.0) * PI;
     }
 
     // Interactions with map
@@ -91,7 +94,7 @@ void main() {
         imageStore(img_Map, new_pixel_coords, vec4(0.0));
         agents[ind].hasFood = 1;
         // TEMP
-        agents[ind].angle += PI;
+        agents[ind].angle += 2 * PI * gold_noise(agents[ind].position, u_Time);
     }
     else if (mapColor == vec4(100.0 / 255.0, 100.0 / 255.0, 100.0 / 255.0, 1.0) && agents[ind].hasFood == 1) // Home collision
     {
@@ -117,6 +120,10 @@ void main() {
 float rand(vec2 co)
 {
     return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+float gold_noise(vec2 xy, float seed) {
+    return fract(tan(distance(xy * PHI, xy) * seed) * xy.x);
 }
 
 vec4 sence(ivec2 pos)
