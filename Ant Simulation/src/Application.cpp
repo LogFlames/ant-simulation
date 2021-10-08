@@ -15,12 +15,12 @@
 
 #define PI 3.14159265358979f
 
-#define AGENT_COUNT 512
+#define AGENT_COUNT 128
 
-#define WIDTH 512
+#define WIDTH 256
 #define HEIGHT 144
 
-#define MAP_PATH "res/textures/Map_corridor_512x144.png"
+#define MAP_PATH "res/textures/map_pathways_256x144.png"
 
 static void GLClearError()
 {
@@ -167,8 +167,8 @@ static unsigned int CreateShader(const std::string& vertexShader, const std::str
 struct Agent {
     float position[2];
     float angle;
-    float angleVelocity;
     int hasFood;
+    int foodLeftAtHome;
     float padding[3];
 };
 
@@ -189,15 +189,15 @@ int main(void)
 
     for (unsigned int i = 0; i < AGENT_COUNT; i++)
     {
-        //float x = static_cast<float>(std::rand() % (textureWidth * 100)) / 100.0f;
-        //float y = static_cast<float>(std::rand() % (textureHeight * 100)) / 100.0f;
+        float x = static_cast<float>(std::rand() % (WIDTH * 100)) / 100.0f;
+        float y = static_cast<float>(std::rand() % (HEIGHT * 100)) / 100.0f;
         //x = textureWidth / 2.0f;
         //y = textureHeight / 2.0f;
         float distance = std::sqrt(static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX)) * static_cast<float>(std::min(WIDTH, HEIGHT) / 2);
         float angle = static_cast<float>(std::rand() % static_cast<int>(2.0f * PI * 1000.0f)) / 1000.0f;
-        float x = std::cos(angle) * distance + static_cast<float>(WIDTH) / 2.0f;
-        float y = std::sin(angle) * distance + static_cast<float>(HEIGHT) / 2.0f;
-        agents[i] = { { WIDTH / 2.0f, HEIGHT / 2.0f }, angle + 1.0f * PI / 3.0f, 0.0f, 0 };
+        //float x = std::cos(angle) * distance + static_cast<float>(WIDTH) / 2.0f;
+        //float y = std::sin(angle) * distance + static_cast<float>(HEIGHT) / 2.0f;
+        agents[i] = { { WIDTH / 2.0f, HEIGHT / 2.0f }, angle + 1.0f * PI / 3.0f, 0, 0, { 0.0f, 0.0f, 0.0f } };
         //agents[i] = { { x, y }, static_cast<float>(std::rand() % static_cast<int>(2.0f * PI * 1000.0f)) / 1000.0f, 0.0f, 0 };
     }
 
@@ -239,10 +239,10 @@ int main(void)
     stbi_set_flip_vertically_on_load(true);
 
     int mapWidth, mapHeight, mapNrChannels;
-    unsigned char* data = stbi_load(MAP_PATH, &mapWidth, &mapHeight, &mapNrChannels, STBI_rgb_alpha);
+    unsigned char* mapData = stbi_load(MAP_PATH, &mapWidth, &mapHeight, &mapNrChannels, STBI_rgb_alpha);
 
-    if (!data) {
-        std::cout << "Failed to load map texture" << std::endl;
+    if (!mapData) {
+        std::cout << "Failed to load map texture." << std::endl;
     }
 
     ASSERT(mapWidth == WIDTH);
@@ -258,11 +258,12 @@ int main(void)
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, mapWidth, mapHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, mapWidth, mapHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, mapData));
 
-    GLCall(glBindImageTexture(2, tex_Map, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
+    GLCall(glBindImageTexture(2, tex_Map, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI));
 
-    stbi_image_free(data);
+    // We use this memory later
+    //stbi_image_free(mapData);
 
     unsigned int tex_TrailMap;
     GLCall(glGenTextures(1, &tex_TrailMap));
@@ -316,7 +317,7 @@ int main(void)
     GLCall(glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &work_grp_inv));
 
     printf("max local work group invocations %i\n", work_grp_inv);
-    
+
     float vertices[] = {
         // positions     // texture coords
          1.0f,  1.0f,    1.0f, 1.0f, // top right
@@ -333,7 +334,7 @@ int main(void)
     unsigned int vao;
     GLCall(glGenVertexArrays(1, &vao));
     GLCall(glBindVertexArray(vao));
-    
+
     unsigned int vbo;
     GLCall(glGenBuffers(1, &vbo));
     GLCall(glBindBuffer(GL_ARRAY_BUFFER, vbo));
@@ -364,7 +365,7 @@ int main(void)
 
     GLCall(int timeLocation = glGetUniformLocation(computeProgram, "u_Time"));
     //ASSERT(timeLocation != -1);
-    
+
     GLCall(int computeTextureSizeLocation = glGetUniformLocation(computeProgram, "u_TextureSize"));
     ASSERT(computeTextureSizeLocation != -1);
     GLCall(glUniform2f(computeTextureSizeLocation, static_cast<float>(WIDTH), static_cast<float>(HEIGHT)));
@@ -392,7 +393,7 @@ int main(void)
     GLCall(glValidateProgram(clearProgram));
     GLCall(glDeleteShader(clearShader));
     GLCall(glUseProgram(clearProgram));
-    
+
     ShaderProgramSource quadSource = ParseShader("res/shaders/Basic.shader");
     unsigned int quadProgram = CreateShader(quadSource.VertexSource, quadSource.FragmentSource);
     GLCall(glUseProgram(quadProgram));
@@ -413,6 +414,8 @@ int main(void)
     ASSERT(textureSizeLocation != -1);
     GLCall(glUniform2f(textureSizeLocation, static_cast<float>(WIDTH), static_cast<float>(HEIGHT)));
 
+    int roundsPerFrame = 1;
+    int gatheredFood = 0;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -422,10 +425,10 @@ int main(void)
 
         glfwGetWindowSize(window, &screenWidth, &screenHeight);
         GLCall(glViewport(0, 0, screenWidth, screenHeight));
-        
+
         GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < roundsPerFrame; i++) {
             {
                 GLCall(glUseProgram(fadeProgram));
                 GLCall(glDispatchCompute(WIDTH / 16, HEIGHT / 16, 1));
@@ -435,24 +438,101 @@ int main(void)
 
             {
                 GLCall(glUseProgram(clearProgram));
-                GLCall(glDispatchCompute(WIDTH / 16, HEIGHT/ 16, 1));
+                GLCall(glDispatchCompute(WIDTH / 16, HEIGHT / 16, 1));
             }
 
             GLCall(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
 
             {
-                for (int round = 0; round < (AGENT_COUNT / 8 / work_grp_cnt[0]) + 1; round++)
+                for (int round = 0; round < (AGENT_COUNT / 1 / work_grp_cnt[0]) + 1; round++)
                 {
                     GLCall(glUseProgram(computeProgram));
                     GLCall(glUniform1f(timeLocation, currentTime));
                     GLCall(glUniform1i(arrayOffsetLocation, round * work_grp_cnt[0]));
-                    GLCall(glDispatchCompute(std::min(AGENT_COUNT / 8 - work_grp_cnt[0] * round, work_grp_cnt[0]), 1, 1));
+                    GLCall(glDispatchCompute(std::min(AGENT_COUNT / 1 - work_grp_cnt[0] * round, work_grp_cnt[0]), 1, 1));
                 }
+            }
+
+            GLCall(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+        }
+
+        /*
+        GLCall(glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo));
+        GLCall(glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(agents), agents));
+
+        for (int i = 0; i < AGENT_COUNT; i++) {
+            while (agents[i].foodLeftAtHome > 0) {
+                agents[i].foodLeftAtHome--;
+                gatheredFood++;
             }
         }
 
-        GLCall(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+        GLCall(glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(agents), agents));
 
+        std::cout << gatheredFood << "\n";
+        */        
+
+        glfwPollEvents();
+
+        {
+            GLCall(glBindTexture(GL_TEXTURE_2D, tex_Map));
+            GLCall(glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, mapData));
+
+            double mouseXPos;
+            double mouseYPos;
+
+            glfwGetCursorPos(window, &mouseXPos, &mouseYPos);
+
+
+            float textureAspect = (float)WIDTH / (float)HEIGHT;
+            float screenAspect = (float)screenWidth / (float)screenHeight;
+            
+            if (textureAspect > screenAspect)
+            {
+                mouseXPos = (mouseXPos / screenWidth) * WIDTH;
+                mouseYPos = (1.0 - ((((2.0 * mouseYPos / screenHeight) - 1.0) * textureAspect / screenAspect) + 1.0) / 2.0) * HEIGHT;
+            }
+            else 
+            {
+                mouseXPos = ((((2.0 * mouseXPos / screenWidth) - 1.0) * screenAspect / textureAspect) + 1.0) / 2.0 * WIDTH;
+                mouseYPos = (1.0 - (mouseYPos / screenHeight)) * HEIGHT;
+            }
+
+            if (GLFW_PRESS == glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)) 
+            {
+                if (mouseXPos >= 0 && mouseXPos < WIDTH && mouseYPos >= 0 && mouseYPos < HEIGHT) {
+                    for (int xOffset = -2; xOffset <= 2; xOffset++) 
+                    {
+                        for (int yOffset = -2; yOffset <= 2; yOffset++) 
+                        {
+                            int ind = 4 * ((int)(mouseYPos + yOffset) * mapWidth + (int)(mouseXPos + xOffset));
+                            mapData[ind + 0] = 128;
+                            mapData[ind + 1] = 128;
+                            mapData[ind + 2] = 128;
+                            mapData[ind + 3] = 255;
+                        }
+                    }
+                }
+            }
+
+            GLCall(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, mapWidth, mapHeight, GL_RGBA, GL_UNSIGNED_BYTE, mapData));
+        }
+
+        if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_ESCAPE))
+        {
+            glfwSetWindowShouldClose(window, 1);
+        }
+
+        if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_SPACE))
+        {
+            roundsPerFrame = 32;
+        }
+        else
+        {
+            roundsPerFrame = 2;
+        }
+
+        // Render to the screen
         {
             GLCall(glUseProgram(quadProgram));
             GLCall(glUniform2f(screenSizeLocation, static_cast<float>(screenWidth), static_cast<float>(screenHeight)));
@@ -461,12 +541,7 @@ int main(void)
             GLCall(glDrawArrays(GL_TRIANGLES, 0, 3));
         }
 
-        glfwPollEvents();
-        
-        if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_ESCAPE))
-        {
-            glfwSetWindowShouldClose(window, 1);
-        }
+
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
