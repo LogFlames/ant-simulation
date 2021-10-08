@@ -15,12 +15,12 @@
 
 #define PI 3.14159265358979f
 
-#define AGENT_COUNT 1024
+#define AGENT_COUNT 512
 
-#define WIDTH 256
+#define WIDTH 512
 #define HEIGHT 144
 
-#define MAP_PATH "res/textures/Map_food_smiley_256x144.png"
+#define MAP_PATH "res/textures/Map_corridor_512x144.png"
 
 static void GLClearError()
 {
@@ -425,7 +425,7 @@ int main(void)
         
         GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 2; i++) {
             {
                 GLCall(glUseProgram(fadeProgram));
                 GLCall(glDispatchCompute(WIDTH / 16, HEIGHT / 16, 1));

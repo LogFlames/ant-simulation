@@ -7,15 +7,15 @@ layout(rgba32f, binding = 0) uniform image2D img_TrailMap;
 void main() {
     ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 
-    vec4 pixel = 0.992 *   imageLoad(img_TrailMap, pixel_coords);
-    pixel     += 0.001 * imageLoad(img_TrailMap, pixel_coords + ivec2(1,  0));
-    pixel     += 0.001 * imageLoad(img_TrailMap, pixel_coords + ivec2(-1, 0));
-    pixel     += 0.001 * imageLoad(img_TrailMap, pixel_coords + ivec2(0,  1));
-    pixel     += 0.001 * imageLoad(img_TrailMap, pixel_coords + ivec2(0, -1));
-    pixel     += 0.001 * imageLoad(img_TrailMap, pixel_coords + ivec2(1,  1));
-    pixel     += 0.001 * imageLoad(img_TrailMap, pixel_coords + ivec2(-1,-1));
-    pixel     += 0.001 * imageLoad(img_TrailMap, pixel_coords + ivec2(-1, 1));
-    pixel     += 0.001 * imageLoad(img_TrailMap, pixel_coords + ivec2(1, -1));
+    vec4 pixel = 0.984 *   imageLoad(img_TrailMap, pixel_coords);
+    pixel     += 0.002 * imageLoad(img_TrailMap, pixel_coords + ivec2(1,  0));
+    pixel     += 0.002 * imageLoad(img_TrailMap, pixel_coords + ivec2(-1, 0));
+    pixel     += 0.002 * imageLoad(img_TrailMap, pixel_coords + ivec2(0,  1));
+    pixel     += 0.002 * imageLoad(img_TrailMap, pixel_coords + ivec2(0, -1));
+    pixel     += 0.002 * imageLoad(img_TrailMap, pixel_coords + ivec2(1,  1));
+    pixel     += 0.002 * imageLoad(img_TrailMap, pixel_coords + ivec2(-1,-1));
+    pixel     += 0.002 * imageLoad(img_TrailMap, pixel_coords + ivec2(-1, 1));
+    pixel     += 0.002 * imageLoad(img_TrailMap, pixel_coords + ivec2(1, -1));
 
     //pixel /= 9;
     pixel *= 0.999;

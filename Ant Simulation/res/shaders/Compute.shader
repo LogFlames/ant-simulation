@@ -36,7 +36,7 @@ void main() {
     ivec2 pixel_coords = ivec2(agents[ind].position);
 
     // Move by current angle and speed
-    agents[ind].position += vec2(cos(agents[ind].angle), sin(agents[ind].angle)) * 60.0 / 60.0;
+    agents[ind].position += vec2(cos(agents[ind].angle), sin(agents[ind].angle)) * 45.0 / 60.0;
     ivec2 new_pixel_coords = ivec2(agents[ind].position);
 
 
@@ -54,7 +54,7 @@ void main() {
     agents[ind].angleVelocity = 0.0;
 
     // Turn by anglechange
-    agents[ind].angle += angleChange * 1.0 + (gold_noise(agents[ind].position, u_Time) - 0.5) * 0.05;
+    agents[ind].angle += angleChange * 0.8 + (gold_noise(agents[ind].position, u_Time) - 0.5) * 0.08;
     //agents[ind].angle += angleChange * 10.0;
 
     // Bounce on map borders - horizontal
@@ -87,7 +87,7 @@ void main() {
     if (mapColor == vec4(128.0 / 255.0, 128.0 / 255.0, 128.0 / 255.0, 1.0))  // Wall collision
     {
         agents[ind].position = vec2(pixel_coords);
-        agents[ind].angle += PI + ((rand(agents[ind].position) - 0.5) * PI);
+        agents[ind].angle += PI + ((gold_noise(agents[ind].position, u_Time) - 0.5) * PI);
     }
     else if (mapColor == vec4(1.0, 0.0, 0.0, 1.0) && agents[ind].hasFood == 0) // Food collision
     {
@@ -123,15 +123,16 @@ float rand(vec2 co)
 }
 
 float gold_noise(vec2 xy, float seed) {
+    xy += vec2(1);
     return fract(tan(distance(xy * PHI, xy) * seed) * xy.x);
 }
 
 vec4 sence(ivec2 pos)
 {
     vec4 averageColor = vec4(0.0);
-    for (int x = -1; x <= 1; x++)
+    for (int x = -2; x <= 2; x++)
     {
-        for (int y = -1; y <= 1; y++)
+        for (int y = -2; y <= 2; y++)
         {
             averageColor += imageLoad(img_TrailMap, pos + ivec2(x, y));
         }
