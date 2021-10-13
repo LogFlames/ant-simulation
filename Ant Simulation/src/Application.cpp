@@ -15,12 +15,12 @@
 
 #define PI 3.14159265358979f
 
-#define AGENT_COUNT 128
+#define AGENT_COUNT 1024
 
-#define WIDTH 256
-#define HEIGHT 144
+#define WIDTH 1024
+#define HEIGHT 512
 
-#define MAP_PATH "res/textures/map_pathways_256x144.png"
+#define MAP_PATH "res/textures/map_advanced_corridor_1024x512.png"
 
 static void GLClearError()
 {
@@ -249,10 +249,33 @@ int main(void)
     ASSERT(mapHeight == HEIGHT);
 
     // Texture
+    unsigned int tex_TrailMap;
+    GLCall(glActiveTexture(GL_TEXTURE0));
+    GLCall(glGenTextures(1, &tex_TrailMap));
+    GLCall(glBindTexture(GL_TEXTURE_2D, tex_TrailMap));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WIDTH, HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr));
+
+    GLCall(glBindImageTexture(0, tex_TrailMap, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
+
+    unsigned int tex_Agents;
+    GLCall(glActiveTexture(GL_TEXTURE1));
+    GLCall(glGenTextures(1, &tex_Agents));
+    GLCall(glBindTexture(GL_TEXTURE_2D, tex_Agents));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WIDTH, HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr));
+
+    GLCall(glBindImageTexture(1, tex_Agents, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
 
     unsigned int tex_Map;
-    GLCall(glGenTextures(1, &tex_Map));
     GLCall(glActiveTexture(GL_TEXTURE2));
+    GLCall(glGenTextures(1, &tex_Map));
     GLCall(glBindTexture(GL_TEXTURE_2D, tex_Map));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
@@ -265,30 +288,8 @@ int main(void)
     // We use this memory later
     //stbi_image_free(mapData);
 
-    unsigned int tex_TrailMap;
-    GLCall(glGenTextures(1, &tex_TrailMap));
-    GLCall(glActiveTexture(GL_TEXTURE0));
-    GLCall(glBindTexture(GL_TEXTURE_2D, tex_TrailMap));
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WIDTH, HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr));
 
-    GLCall(glBindImageTexture(0, tex_TrailMap, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
-
-    unsigned int tex_Agents;
-    GLCall(glGenTextures(1, &tex_Agents));
-    GLCall(glActiveTexture(GL_TEXTURE1));
-    GLCall(glBindTexture(GL_TEXTURE_2D, tex_Agents));
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WIDTH, HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr));
-
-    GLCall(glBindImageTexture(1, tex_Agents, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
-
+    // SSBO
     unsigned int ssbo;
     GLCall(glGenBuffers(1, &ssbo));
     GLCall(glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo));
@@ -398,9 +399,10 @@ int main(void)
     unsigned int quadProgram = CreateShader(quadSource.VertexSource, quadSource.FragmentSource);
     GLCall(glUseProgram(quadProgram));
 
+    // AGENT OR TRAIL
     GLCall(int agentTextureLocation = glGetUniformLocation(quadProgram, "u_AgentTexture"));
     ASSERT(agentTextureLocation != -1);
-    GLCall(glUniform1i(agentTextureLocation, 0));
+    GLCall(glUniform1i(agentTextureLocation, 0 ));
 
     GLCall(int mapTextureLocation = glGetUniformLocation(quadProgram, "u_MapTexture"));
     ASSERT(mapTextureLocation != -1);
@@ -456,6 +458,7 @@ int main(void)
             GLCall(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
         }
 
+
         /*
         GLCall(glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo));
         GLCall(glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(agents), agents));
@@ -465,12 +468,16 @@ int main(void)
                 agents[i].foodLeftAtHome--;
                 gatheredFood++;
             }
+
+            if (agents[i].hasFood == 2) {
+                std::cout << agents[i].angle << std::endl;
+            }
         }
 
         GLCall(glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(agents), agents));
 
-        std::cout << gatheredFood << "\n";
-        */        
+        //std::cout << gatheredFood << "\n";
+        */
 
         glfwPollEvents();
 
@@ -486,24 +493,24 @@ int main(void)
 
             float textureAspect = (float)WIDTH / (float)HEIGHT;
             float screenAspect = (float)screenWidth / (float)screenHeight;
-            
+
             if (textureAspect > screenAspect)
             {
                 mouseXPos = (mouseXPos / screenWidth) * WIDTH;
                 mouseYPos = (1.0 - ((((2.0 * mouseYPos / screenHeight) - 1.0) * textureAspect / screenAspect) + 1.0) / 2.0) * HEIGHT;
             }
-            else 
+            else
             {
                 mouseXPos = ((((2.0 * mouseXPos / screenWidth) - 1.0) * screenAspect / textureAspect) + 1.0) / 2.0 * WIDTH;
                 mouseYPos = (1.0 - (mouseYPos / screenHeight)) * HEIGHT;
             }
 
-            if (GLFW_PRESS == glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)) 
+            if (GLFW_PRESS == glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT))
             {
                 if (mouseXPos >= 0 && mouseXPos < WIDTH && mouseYPos >= 0 && mouseYPos < HEIGHT) {
-                    for (int xOffset = -2; xOffset <= 2; xOffset++) 
+                    for (int xOffset = -2; xOffset <= 2; xOffset++)
                     {
-                        for (int yOffset = -2; yOffset <= 2; yOffset++) 
+                        for (int yOffset = -2; yOffset <= 2; yOffset++)
                         {
                             int ind = 4 * ((int)(mouseYPos + yOffset) * mapWidth + (int)(mouseXPos + xOffset));
                             mapData[ind + 0] = 128;
@@ -525,11 +532,11 @@ int main(void)
 
         if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_SPACE))
         {
-            roundsPerFrame = 32;
+            roundsPerFrame = 16;
         }
         else
         {
-            roundsPerFrame = 2;
+            roundsPerFrame = 1;
         }
 
         // Render to the screen

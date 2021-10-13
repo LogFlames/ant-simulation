@@ -35,6 +35,7 @@ vec4 sence(ivec2 pos);
 void main() {
     uint ind = gl_GlobalInvocationID.x + u_ArrayOffset;
     Agent agent = agents[ind];
+
     ivec2 pixel_coords = ivec2(agent.position);
     
     // Move by current angle and speed
@@ -97,37 +98,51 @@ void main() {
     }
 
     // Interactions with map
-    uvec4 mapColor = imageLoad(img_Map, new_pixel_coords);
-    if (mapColor == uvec4(128, 128, 128, 255))  // Wall collision
-    {
-        agent.position = vec2(pixel_coords);
-        agent.angle += PI + ((gold_noise(agent.position, u_Time) - 0.5) * PI);
+    float xDiff = new_pixel_coords.x - pixel_coords.x;
+    float yDiff = new_pixel_coords.y - pixel_coords.y;
+    float maxDiff = max(abs(xDiff), abs(yDiff));
+        
+    for (float step = 1; step <= maxDiff; step++) {
+        ivec2 intermediate_pixel_coords = ivec2(pixel_coords.x + xDiff * step / maxDiff, pixel_coords.y + yDiff * step / maxDiff);
+
+        uvec4 mapColor = imageLoad(img_Map, intermediate_pixel_coords);
+        if (mapColor == uvec4(128, 128, 128, 255))  // Wall collision
+        {
+            agent.position = vec2(pixel_coords);
+            agent.angle += PI + ((gold_noise(agent.position, u_Time) - 0.5) * PI);
+            break;
+        }
+        else if (mapColor == uvec4(255, 0, 0, 255) && agent.hasFood == 0) // Food collision
+        {
+            imageStore(img_Map, intermediate_pixel_coords, uvec4(0.0));
+            agent.hasFood = 1;
+            agent.angle += PI;
+            break;
+        }
+        else if (mapColor == uvec4(100, 100, 100, 255) && agent.hasFood == 1) // Home collision
+        {
+            agent.foodLeftAtHome++;
+            agent.hasFood = 0;
+            agent.angle += PI;
+            break;
+        }
     }
-    else if (mapColor == uvec4(255, 0, 0, 255) && agent.hasFood == 0) // Food collision
-    {
-        imageStore(img_Map, new_pixel_coords, uvec4(0.0));
-        agent.hasFood = 1;
-        agent.angle += PI;
-    }
-    else if (mapColor == uvec4(100, 100, 100, 255) && agent.hasFood == 1) // Home collision
-    {
-        agent.foodLeftAtHome++;
-        agent.hasFood = 0;
-        agent.angle += PI;
-    }
+
     // Show agent on map
 
     vec4 pixel = vec4(0.0, 1.0, 0.0, 1.0);
     if (agent.hasFood == 1)
     {
         pixel = vec4(1.0, 0.0, 0.0, 1.0);
-    }
+    } 
 
-    vec4 oldValue = imageLoad(img_TrailMap, new_pixel_coords);
+    ivec2 final_pixel_coords = ivec2(agent.position);
+
+    vec4 oldValue = imageLoad(img_TrailMap, final_pixel_coords);
     vec4 newValue = vec4(clamp(oldValue.rgb + pixel.rgb / 2.0, 0.0, 1.0), 1.0);
 
-    imageStore(img_TrailMap, new_pixel_coords, newValue);
-    imageStore(img_Agents, new_pixel_coords, pixel);
+    imageStore(img_TrailMap, final_pixel_coords, newValue);
+    imageStore(img_Agents, final_pixel_coords, pixel);
 
     agents[ind] = agent;
 }
@@ -141,7 +156,11 @@ float gold_noise(vec2 xy, float seed)
 {
     seed = fract(seed);
     xy += vec2(1.0);
-    return fract(tan(distance(xy * PHI, xy) * seed) * xy.x);
+    while  (seed > 1000.0) {
+        seed -= 1000.0;
+    }
+
+    return fract(sin(distance(xy * PHI, xy) * seed) * xy.x);
 }
 
 vec4 sence(ivec2 pos)
