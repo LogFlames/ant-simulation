@@ -36,6 +36,7 @@ layout(location = 0) out vec4 color;
 
 in vec2 TexCoord;
 
+uniform sampler2D u_TrailTexture;
 uniform sampler2D u_AgentTexture;
 uniform sampler2D u_MapTexture;
 
@@ -44,8 +45,9 @@ uniform vec2 u_TextureSize;
 void main()
 {
     vec4 agentColor = texture(u_AgentTexture, TexCoord);
+    vec4 trailColor = texture(u_TrailTexture, TexCoord);
     vec4 mapColor = texture(u_MapTexture, TexCoord);
     
-    color = vec4(mapColor.rgb * mapColor.a + agentColor.rgb * agentColor.a, 1.0);
+    color = vec4(mapColor.rgb * mapColor.a + trailColor.rgb * trailColor.a + agentColor.rgb * agentColor.a, 1.0);
 };
 

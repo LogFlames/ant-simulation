@@ -169,7 +169,8 @@ struct Agent {
     float angle;
     int hasFood;
     int foodLeftAtHome;
-    float padding[3];
+    float timeAtSource;
+    float padding[2];
 };
 
 Agent agents[AGENT_COUNT];
@@ -197,7 +198,7 @@ int main(void)
         float angle = static_cast<float>(std::rand() % static_cast<int>(2.0f * PI * 1000.0f)) / 1000.0f;
         //float x = std::cos(angle) * distance + static_cast<float>(WIDTH) / 2.0f;
         //float y = std::sin(angle) * distance + static_cast<float>(HEIGHT) / 2.0f;
-        agents[i] = { { WIDTH / 2.0f, HEIGHT / 2.0f }, angle + 1.0f * PI / 3.0f, 0, 0, { 0.0f, 0.0f, 0.0f } };
+        agents[i] = { { WIDTH / 2.0f, HEIGHT / 2.0f }, angle + 1.0f * PI / 3.0f, 0, 0, 0.0f, { 0.0f, 0.0f } };
         //agents[i] = { { x, y }, static_cast<float>(std::rand() % static_cast<int>(2.0f * PI * 1000.0f)) / 1000.0f, 0.0f, 0 };
     }
 
@@ -399,10 +400,13 @@ int main(void)
     unsigned int quadProgram = CreateShader(quadSource.VertexSource, quadSource.FragmentSource);
     GLCall(glUseProgram(quadProgram));
 
-    // AGENT OR TRAIL
+    GLCall(int trailTextureLocation = glGetUniformLocation(quadProgram, "u_TrailTexture"));
+    ASSERT(trailTextureLocation != -1);
+    GLCall(glUniform1i(trailTextureLocation, 0));
+
     GLCall(int agentTextureLocation = glGetUniformLocation(quadProgram, "u_AgentTexture"));
     ASSERT(agentTextureLocation != -1);
-    GLCall(glUniform1i(agentTextureLocation, 0 ));
+    GLCall(glUniform1i(agentTextureLocation, 1));
 
     GLCall(int mapTextureLocation = glGetUniformLocation(quadProgram, "u_MapTexture"));
     ASSERT(mapTextureLocation != -1);
@@ -416,7 +420,7 @@ int main(void)
     ASSERT(textureSizeLocation != -1);
     GLCall(glUniform2f(textureSizeLocation, static_cast<float>(WIDTH), static_cast<float>(HEIGHT)));
 
-    int roundsPerFrame = 1;
+    int roundsPerFrame = 0;
     int gatheredFood = 0;
 
     while (!glfwWindowShouldClose(window))
@@ -480,10 +484,10 @@ int main(void)
         */
 
         glfwPollEvents();
-
+        
         {
-            GLCall(glBindTexture(GL_TEXTURE_2D, tex_Map));
-            GLCall(glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, mapData));
+            //GLCall(glBindTexture(GL_TEXTURE_2D, tex_Map));
+            //GLCall(glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, mapData));
 
             double mouseXPos;
             double mouseYPos;
@@ -522,7 +526,7 @@ int main(void)
                 }
             }
 
-            GLCall(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, mapWidth, mapHeight, GL_RGBA, GL_UNSIGNED_BYTE, mapData));
+            //GLCall(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, mapWidth, mapHeight, GL_RGBA, GL_UNSIGNED_BYTE, mapData));
         }
 
         if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_ESCAPE))
@@ -530,13 +534,45 @@ int main(void)
             glfwSetWindowShouldClose(window, 1);
         }
 
-        if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_SPACE))
+        if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_0))
+        {
+            roundsPerFrame = 0;
+        }
+        else if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_1))
+        {
+            roundsPerFrame = 1;
+        }
+        else if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_2))
+        {
+            roundsPerFrame = 2;
+        }
+        else if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_3))
+        {
+            roundsPerFrame = 4;
+        }
+        else if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_4))
+        {
+            roundsPerFrame = 6;
+        }
+        else if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_5))
+        {
+            roundsPerFrame = 8;
+        }
+        else if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_6))
+        {
+            roundsPerFrame = 10;
+        }
+        else if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_7))
+        {
+            roundsPerFrame = 12;
+        }
+        else if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_8))
         {
             roundsPerFrame = 16;
         }
-        else
+        else if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_9))
         {
-            roundsPerFrame = 1;
+            roundsPerFrame = 32;
         }
 
         // Render to the screen

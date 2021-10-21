@@ -7,7 +7,8 @@ struct Agent
     float angle;
     int hasFood;
     int foodLeftAtHome;
-    float p1, p2, p3;
+    float timeAtSource;
+    float p2, p3;
 };
 
 layout(rgba32f, binding = 0) uniform image2D img_TrailMap;
@@ -25,8 +26,9 @@ uniform int u_ArrayOffset;
 
 const float PI = 3.141592653589793238;
 const float PHI = 1.61803398874989484820459;
+const float TIME_LAYING_TRAIL = 60.0;
 
-const float senceDistance = 6.0;
+const float senceDistance = 12.0;
 
 float rand(vec2 co);
 float gold_noise(vec2 xy, float seed);
@@ -116,6 +118,7 @@ void main() {
         {
             imageStore(img_Map, intermediate_pixel_coords, uvec4(0.0));
             agent.hasFood = 1;
+            agent.timeAtSource = u_Time;
             agent.angle += PI;
             break;
         }
@@ -123,6 +126,7 @@ void main() {
         {
             agent.foodLeftAtHome++;
             agent.hasFood = 0;
+            agent.timeAtSource = u_Time;
             agent.angle += PI;
             break;
         }
@@ -134,7 +138,9 @@ void main() {
     if (agent.hasFood == 1)
     {
         pixel = vec4(1.0, 0.0, 0.0, 1.0);
-    } 
+    }
+
+    pixel *= max(1 - (u_Time - agent.timeAtSource) / TIME_LAYING_TRAIL, 0);
 
     ivec2 final_pixel_coords = ivec2(agent.position);
 
@@ -166,9 +172,9 @@ float gold_noise(vec2 xy, float seed)
 vec4 sence(ivec2 pos)
 {
     vec4 averageColor = vec4(0.0);
-    for (int x = -2; x <= 2; x++)
+    for (int x = -5; x <= 5; x++)
     {
-        for (int y = -2; y <= 2; y++)
+        for (int y = -5; y <= 5; y++)
         {
             vec4 trail = imageLoad(img_TrailMap, pos + ivec2(x, y));
 
