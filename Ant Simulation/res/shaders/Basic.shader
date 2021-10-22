@@ -47,7 +47,12 @@ void main()
     vec4 agentColor = texture(u_AgentTexture, TexCoord);
     vec4 trailColor = texture(u_TrailTexture, TexCoord);
     vec4 mapColor = texture(u_MapTexture, TexCoord);
+
+    vec3 added = mapColor.rgb * mapColor.a + trailColor.rgb * trailColor.a + agentColor.rgb * agentColor.a;
+    added.r = clamp(added.r, 0.0, 1.0);
+    added.g = clamp(added.g, 0.0, 1.0);
+    added.b = clamp(added.b, 0.0, 1.0);
     
-    color = vec4(mapColor.rgb * mapColor.a + trailColor.rgb * trailColor.a + agentColor.rgb * agentColor.a, 1.0);
+    color = vec4(added, 1.0);
 };
 

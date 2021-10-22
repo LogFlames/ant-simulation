@@ -19,6 +19,6 @@ void main() {
     pixel     += 0.0 * imageLoad(img_TrailMap, pixel_coords + ivec2(1, -1));
     */
 
-    pixel = vec4(clamp(pixel.rgb - vec3(1.0 / (60.0 * 2.0)), 0.0, 1.0), 1.0);
+    pixel = vec4(clamp(pixel.rgb - vec3(1.0 / (60.0 * 20.0)), 0.0, 1.0), 1.0);
     imageStore(img_TrailMap, pixel_coords, pixel);
 }

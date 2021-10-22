@@ -26,15 +26,17 @@ uniform int u_ArrayOffset;
 
 const float PI = 3.141592653589793238;
 const float PHI = 1.61803398874989484820459;
-const float TIME_LAYING_TRAIL = 60.0;
+const float TIME_LAYING_TRAIL = 50.0;
 
 const float senceDistance = 12.0;
 
 float rand(vec2 co);
-float gold_noise(vec2 xy, float seed);
+float gold_noise(vec2 xy, float seed, float seed_counter);
 vec4 sence(ivec2 pos);
 
 void main() {
+    float seed_counter = 0.0;
+
     uint ind = gl_GlobalInvocationID.x + u_ArrayOffset;
     Agent agent = agents[ind];
 
@@ -62,16 +64,19 @@ void main() {
 
     if (f_left > f_middle && f_left > f_right)
     {
-        f_turning = gold_noise(agent.position, u_Time) * PI * 0.5;
+        seed_counter++;
+        f_turning = gold_noise(agent.position, u_Time, seed_counter) * PI * 0.5;
     }
 
     if (f_right > f_middle && f_right > f_left)
     {
-        f_turning = -gold_noise(agent.position, u_Time) * PI * 0.5;
+        seed_counter++;
+        f_turning = -gold_noise(agent.position, u_Time, seed_counter) * PI * 0.5;
     }
 
     // Turn by anglechange
-    agent.angle += f_turning * 1.0 + (gold_noise(agent.position, u_Time) - 0.5) * 0.4;
+    seed_counter++;
+    agent.angle += f_turning * 1.0 + (gold_noise(agent.position, u_Time, seed_counter) - 0.5) * 0.4;
     //agent.angle += gold_noise(agent.position, u_Time) - 0.5;
     
 
@@ -79,24 +84,32 @@ void main() {
     if (agent.position.x < 0.0)
     {
          agent.position.x = 0.0;
-         agent.angle = (gold_noise(agent.position, u_Time) - 0.5) * PI;
+
+         seed_counter++;
+         agent.angle = (gold_noise(agent.position, u_Time, seed_counter) - 0.5) * PI;
     }
     else if (agent.position.x >= u_TextureSize.x)
     {
         agent.position.x = u_TextureSize.x - 1.0;
-        agent.angle = (gold_noise(agent.position, u_Time) + 0.5) * PI;
+
+        seed_counter++;
+        agent.angle = (gold_noise(agent.position, u_Time, seed_counter) + 0.5) * PI;
     }
 
     // Bounce on map borders - vertical
     if (agent.position.y < 0.0)
     {
         agent.position.y = 0.0;
-        agent.angle = (gold_noise(agent.position, u_Time)) * PI;
+
+        seed_counter++;
+        agent.angle = (gold_noise(agent.position, u_Time, seed_counter)) * PI;
     }
     else if (agent.position.y >= u_TextureSize.y)
     {
         agent.position.y = u_TextureSize.y - 1.0;
-        agent.angle = (gold_noise(agent.position, u_Time) + 1.0) * PI;
+
+        seed_counter++;
+        agent.angle = (gold_noise(agent.position, u_Time, seed_counter) + 1.0) * PI;
     }
 
     // Interactions with map
@@ -111,7 +124,9 @@ void main() {
         if (mapColor == uvec4(128, 128, 128, 255))  // Wall collision
         {
             agent.position = vec2(pixel_coords);
-            agent.angle += PI + ((gold_noise(agent.position, u_Time) - 0.5) * PI);
+
+            seed_counter++;
+            agent.angle += PI + ((gold_noise(agent.position, u_Time, seed_counter) - 0.5) * PI);
             break;
         }
         else if (mapColor == uvec4(255, 0, 0, 255) && agent.hasFood == 0) // Food collision
@@ -122,12 +137,14 @@ void main() {
             agent.angle += PI;
             break;
         }
-        else if (mapColor == uvec4(100, 100, 100, 255) && agent.hasFood == 1) // Home collision
+        else if (mapColor == uvec4(100, 100, 100, 255)) // Home collision
         {
-            agent.foodLeftAtHome++;
-            agent.hasFood = 0;
             agent.timeAtSource = u_Time;
-            agent.angle += PI;
+            if (agent.hasFood == 1) {
+                agent.foodLeftAtHome++;
+                agent.hasFood = 0;
+                agent.angle += PI;
+            }
             break;
         }
     }
@@ -140,15 +157,16 @@ void main() {
         pixel = vec4(1.0, 0.0, 0.0, 1.0);
     }
 
+    ivec2 final_pixel_coords = ivec2(agent.position);
+    imageStore(img_Agents, final_pixel_coords, pixel);
+
     pixel *= max(1 - (u_Time - agent.timeAtSource) / TIME_LAYING_TRAIL, 0);
 
-    ivec2 final_pixel_coords = ivec2(agent.position);
 
     vec4 oldValue = imageLoad(img_TrailMap, final_pixel_coords);
     vec4 newValue = vec4(clamp(oldValue.rgb + pixel.rgb / 2.0, 0.0, 1.0), 1.0);
 
     imageStore(img_TrailMap, final_pixel_coords, newValue);
-    imageStore(img_Agents, final_pixel_coords, pixel);
 
     agents[ind] = agent;
 }
@@ -158,13 +176,10 @@ float rand(vec2 co)
     return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
-float gold_noise(vec2 xy, float seed)
+float gold_noise(vec2 xy, float seed, float seed_counter)
 {
-    seed = fract(seed);
+    seed = fract(seed) + seed_counter;
     xy += vec2(1.0);
-    while  (seed > 1000.0) {
-        seed -= 1000.0;
-    }
 
     return fract(sin(distance(xy * PHI, xy) * seed) * xy.x);
 }

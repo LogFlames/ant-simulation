@@ -423,9 +423,11 @@ int main(void)
     int roundsPerFrame = 0;
     int gatheredFood = 0;
 
+    float time = 0.0;
+
     while (!glfwWindowShouldClose(window))
     {
-        currentTime = static_cast<float>(glfwGetTime());
+        currentTime = time; // static_cast<float>(glfwGetTime());
         deltaTime = currentTime - lastTime;
         lastTime = currentTime;
 
@@ -435,6 +437,8 @@ int main(void)
         GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
         for (int i = 0; i < roundsPerFrame; i++) {
+            time += 0.01f;
+
             {
                 GLCall(glUseProgram(fadeProgram));
                 GLCall(glDispatchCompute(WIDTH / 16, HEIGHT / 16, 1));
