@@ -6,6 +6,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <vector>
 
 #define ASSERT(x) if (!(x)) __debugbreak();
 #define GLCall(x) GLClearError();\
@@ -16,9 +17,6 @@
 #define PI 3.14159265358979f
 
 #define AGENT_COUNT 1024
-
-#define WIDTH 1024
-#define HEIGHT 512
 
 #define MAP_PATH "res/textures/map_advanced_corridor_1024x512.png"
 
@@ -170,7 +168,8 @@ struct Agent {
     int hasFood;
     int foodLeftAtHome;
     float timeAtSource;
-    float padding[2];
+    float timeAtWallCollision;
+    int special;
 };
 
 Agent agents[AGENT_COUNT];
@@ -184,23 +183,6 @@ int main(void)
     float currentTime = 0.0f;
     float lastTime = 0.0f;
     float deltaTime;
-
-    int screenWidth = WIDTH;
-    int screenHeight = HEIGHT;
-
-    for (unsigned int i = 0; i < AGENT_COUNT; i++)
-    {
-        float x = static_cast<float>(std::rand() % (WIDTH * 100)) / 100.0f;
-        float y = static_cast<float>(std::rand() % (HEIGHT * 100)) / 100.0f;
-        //x = textureWidth / 2.0f;
-        //y = textureHeight / 2.0f;
-        float distance = std::sqrt(static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX)) * static_cast<float>(std::min(WIDTH, HEIGHT) / 2);
-        float angle = static_cast<float>(std::rand() % static_cast<int>(2.0f * PI * 1000.0f)) / 1000.0f;
-        //float x = std::cos(angle) * distance + static_cast<float>(WIDTH) / 2.0f;
-        //float y = std::sin(angle) * distance + static_cast<float>(HEIGHT) / 2.0f;
-        agents[i] = { { WIDTH / 2.0f, HEIGHT / 2.0f }, angle + 1.0f * PI / 3.0f, 0, 0, 0.0f, { 0.0f, 0.0f } };
-        //agents[i] = { { x, y }, static_cast<float>(std::rand() % static_cast<int>(2.0f * PI * 1000.0f)) / 1000.0f, 0.0f, 0 };
-    }
 
     GLFWwindow* window;
 
@@ -244,10 +226,36 @@ int main(void)
 
     if (!mapData) {
         std::cout << "Failed to load map texture." << std::endl;
+        glfwTerminate();
+        return 0;
     }
 
-    ASSERT(mapWidth == WIDTH);
-    ASSERT(mapHeight == HEIGHT);
+    int screenWidth = mapWidth;
+    int screenHeight = mapHeight;
+
+    // Find home pixels
+    std::vector<int> homePixels = {};
+    for (int i = 0; i < mapWidth * mapHeight; i++) {
+        if (mapData[i * 4 + 0] == 100 &&
+            mapData[i * 4 + 1] == 100 &&
+            mapData[i * 4 + 2] == 100) {
+            homePixels.push_back(i);
+        }
+    }
+
+    // Initialize agents
+    for (unsigned int i = 0; i < AGENT_COUNT; i++)
+    {
+        int startPositionPixelIndex = std::rand() % homePixels.size();
+        float x = homePixels[startPositionPixelIndex] % mapWidth;
+        float y = homePixels[startPositionPixelIndex] / mapWidth;
+
+        float distance = std::sqrt(static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX)) * static_cast<float>(std::min(mapWidth, mapHeight) / 2);
+        float angle = static_cast<float>(std::rand() % static_cast<int>(2.0f * PI * 1000.0f)) / 1000.0f;
+        agents[i] = { { x, y }, angle + 1.0f * PI / 3.0f, 0, 0, 0.0f, -1000.0f, 0 };
+    }
+
+    agents[0].special = 1;
 
     // Texture
     unsigned int tex_TrailMap;
@@ -258,7 +266,7 @@ int main(void)
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WIDTH, HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr));
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, mapWidth, mapHeight, 0, GL_RGBA, GL_FLOAT, nullptr));
 
     GLCall(glBindImageTexture(0, tex_TrailMap, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
 
@@ -270,7 +278,7 @@ int main(void)
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
     GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WIDTH, HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr));
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, mapWidth, mapHeight, 0, GL_RGBA, GL_FLOAT, nullptr));
 
     GLCall(glBindImageTexture(1, tex_Agents, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F));
 
@@ -370,7 +378,7 @@ int main(void)
 
     GLCall(int computeTextureSizeLocation = glGetUniformLocation(computeProgram, "u_TextureSize"));
     ASSERT(computeTextureSizeLocation != -1);
-    GLCall(glUniform2f(computeTextureSizeLocation, static_cast<float>(WIDTH), static_cast<float>(HEIGHT)));
+    GLCall(glUniform2f(computeTextureSizeLocation, static_cast<float>(mapWidth), static_cast<float>(mapHeight)));
 
     GLCall(int arrayOffsetLocation = glGetUniformLocation(computeProgram, "u_ArrayOffset"));
     ASSERT(arrayOffsetLocation != -1);
@@ -418,7 +426,7 @@ int main(void)
 
     GLCall(int textureSizeLocation = glGetUniformLocation(quadProgram, "u_TextureSize"));
     ASSERT(textureSizeLocation != -1);
-    GLCall(glUniform2f(textureSizeLocation, static_cast<float>(WIDTH), static_cast<float>(HEIGHT)));
+    GLCall(glUniform2f(textureSizeLocation, static_cast<float>(mapWidth), static_cast<float>(mapHeight)));
 
     int roundsPerFrame = 0;
     int gatheredFood = 0;
@@ -438,17 +446,18 @@ int main(void)
 
         for (int i = 0; i < roundsPerFrame; i++) {
             time += 0.01f;
+            currentTime = time;
 
             {
                 GLCall(glUseProgram(fadeProgram));
-                GLCall(glDispatchCompute(WIDTH / 16, HEIGHT / 16, 1));
+                GLCall(glDispatchCompute(mapWidth / 16, mapHeight / 16, 1));
             }
 
             GLCall(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
 
             {
                 GLCall(glUseProgram(clearProgram));
-                GLCall(glDispatchCompute(WIDTH / 16, HEIGHT / 16, 1));
+                GLCall(glDispatchCompute(mapWidth / 16, mapHeight / 16, 1));
             }
 
             GLCall(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
@@ -466,32 +475,12 @@ int main(void)
             GLCall(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
         }
 
-
-        /*
-        GLCall(glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo));
-        GLCall(glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(agents), agents));
-
-        for (int i = 0; i < AGENT_COUNT; i++) {
-            while (agents[i].foodLeftAtHome > 0) {
-                agents[i].foodLeftAtHome--;
-                gatheredFood++;
-            }
-
-            if (agents[i].hasFood == 2) {
-                std::cout << agents[i].angle << std::endl;
-            }
-        }
-
-        GLCall(glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(agents), agents));
-
-        //std::cout << gatheredFood << "\n";
-        */
-
         glfwPollEvents();
-        
+
         {
-            //GLCall(glBindTexture(GL_TEXTURE_2D, tex_Map));
-            //GLCall(glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, mapData));
+            /*
+            GLCall(glBindTexture(GL_TEXTURE_2D, tex_Map));
+            GLCall(glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, mapData));
 
             double mouseXPos;
             double mouseYPos;
@@ -499,23 +488,23 @@ int main(void)
             glfwGetCursorPos(window, &mouseXPos, &mouseYPos);
 
 
-            float textureAspect = (float)WIDTH / (float)HEIGHT;
+            float textureAspect = (float)mapWidth / (float)mapHeight;
             float screenAspect = (float)screenWidth / (float)screenHeight;
 
             if (textureAspect > screenAspect)
             {
-                mouseXPos = (mouseXPos / screenWidth) * WIDTH;
-                mouseYPos = (1.0 - ((((2.0 * mouseYPos / screenHeight) - 1.0) * textureAspect / screenAspect) + 1.0) / 2.0) * HEIGHT;
+                mouseXPos = (mouseXPos / screenWidth) * mapWidth;
+                mouseYPos = (1.0 - ((((2.0 * mouseYPos / screenHeight) - 1.0) * textureAspect / screenAspect) + 1.0) / 2.0) * mapHeight;
             }
             else
             {
-                mouseXPos = ((((2.0 * mouseXPos / screenWidth) - 1.0) * screenAspect / textureAspect) + 1.0) / 2.0 * WIDTH;
-                mouseYPos = (1.0 - (mouseYPos / screenHeight)) * HEIGHT;
+                mouseXPos = ((((2.0 * mouseXPos / screenWidth) - 1.0) * screenAspect / textureAspect) + 1.0) / 2.0 * mapWidth;
+                mouseYPos = (1.0 - (mouseYPos / screenHeight)) * mapHeight;
             }
 
             if (GLFW_PRESS == glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT))
             {
-                if (mouseXPos >= 0 && mouseXPos < WIDTH && mouseYPos >= 0 && mouseYPos < HEIGHT) {
+                if (mouseXPos >= 0 && mouseXPos < mapWidth && mouseYPos >= 0 && mouseYPos < mapHeight) {
                     for (int xOffset = -2; xOffset <= 2; xOffset++)
                     {
                         for (int yOffset = -2; yOffset <= 2; yOffset++)
@@ -530,7 +519,8 @@ int main(void)
                 }
             }
 
-            //GLCall(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, mapWidth, mapHeight, GL_RGBA, GL_UNSIGNED_BYTE, mapData));
+            GLCall(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, mapWidth, mapHeight, GL_RGBA, GL_UNSIGNED_BYTE, mapData));
+            */
         }
 
         if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_ESCAPE))
@@ -579,6 +569,31 @@ int main(void)
             roundsPerFrame = 32;
         }
 
+        if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_SPACE)) 
+        {
+            GLCall(glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo));
+            GLCall(glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(agents), agents));
+
+            for (int i = 0; i < AGENT_COUNT; i++) {
+                /*while (agents[i].foodLeftAtHome > 0) {
+                    agents[i].foodLeftAtHome--;
+                    gatheredFood++;
+                }
+
+                if (agents[i].hasFood == 2) {
+                    std::cout << agents[i].angle << std::endl;
+                }*/
+
+                agents[i].special = 0;
+            }
+
+            agents[std::rand() % AGENT_COUNT].special = 1;
+
+            GLCall(glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(agents), agents));
+
+            //std::cout << gatheredFood << "\n
+        }
+
         // Render to the screen
         {
             GLCall(glUseProgram(quadProgram));
@@ -587,7 +602,6 @@ int main(void)
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
             GLCall(glDrawArrays(GL_TRIANGLES, 0, 3));
         }
-
 
 
         /* Swap front and back buffers */

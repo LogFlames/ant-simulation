@@ -8,7 +8,8 @@ struct Agent
     int hasFood;
     int foodLeftAtHome;
     float timeAtSource;
-    float p2, p3;
+    float timeAtWallCollision;
+    int special;
 };
 
 layout(rgba32f, binding = 0) uniform image2D img_TrailMap;
@@ -24,11 +25,14 @@ uniform float u_Time;
 uniform vec2 u_TextureSize;
 uniform int u_ArrayOffset;
 
+const bool USE_WALL_FEROMONE = true;
+
 const float PI = 3.141592653589793238;
 const float PHI = 1.61803398874989484820459;
 const float TIME_LAYING_TRAIL = 50.0;
+const float TIME_ERASING_FEROMONES_AFTER_WALL_COLLISION = 0.10;
 
-const float senceDistance = 12.0;
+const float senceDistance = 10.0;
 
 float rand(vec2 co);
 float gold_noise(vec2 xy, float seed, float seed_counter);
@@ -87,6 +91,7 @@ void main() {
 
          seed_counter++;
          agent.angle = (gold_noise(agent.position, u_Time, seed_counter) - 0.5) * PI;
+         agent.timeAtWallCollision = u_Time;
     }
     else if (agent.position.x >= u_TextureSize.x)
     {
@@ -94,6 +99,7 @@ void main() {
 
         seed_counter++;
         agent.angle = (gold_noise(agent.position, u_Time, seed_counter) + 0.5) * PI;
+        agent.timeAtWallCollision = u_Time;
     }
 
     // Bounce on map borders - vertical
@@ -103,6 +109,7 @@ void main() {
 
         seed_counter++;
         agent.angle = (gold_noise(agent.position, u_Time, seed_counter)) * PI;
+        agent.timeAtWallCollision = u_Time;
     }
     else if (agent.position.y >= u_TextureSize.y)
     {
@@ -110,6 +117,7 @@ void main() {
 
         seed_counter++;
         agent.angle = (gold_noise(agent.position, u_Time, seed_counter) + 1.0) * PI;
+        agent.timeAtWallCollision = u_Time;
     }
 
     // Interactions with map
@@ -127,6 +135,7 @@ void main() {
 
             seed_counter++;
             agent.angle += PI + ((gold_noise(agent.position, u_Time, seed_counter) - 0.5) * PI);
+            agent.timeAtWallCollision = u_Time;
             break;
         }
         else if (mapColor == uvec4(255, 0, 0, 255) && agent.hasFood == 0) // Food collision
@@ -147,6 +156,11 @@ void main() {
             }
             break;
         }
+
+        if (u_Time - agent.timeAtWallCollision < TIME_ERASING_FEROMONES_AFTER_WALL_COLLISION && USE_WALL_FEROMONE)
+        {
+            imageStore(img_TrailMap, intermediate_pixel_coords, vec4(0.0));
+        }
     }
 
     // Show agent on map
@@ -158,15 +172,29 @@ void main() {
     }
 
     ivec2 final_pixel_coords = ivec2(agent.position);
+
+    // Show on agent map
+
     imageStore(img_Agents, final_pixel_coords, pixel);
+    if (agent.special == 1) 
+    {
+        for (int x = -2; x <= 2; x++) {
+            for (int y = -2; y <= 2; y++) {
+                imageStore(img_Agents, final_pixel_coords + ivec2(x, y), vec4(1.0));
+            }
+        }
+    }
+
+    // Add feromone-trail
+
+    vec4 oldValue = imageLoad(img_TrailMap, final_pixel_coords);
 
     pixel *= max(1 - (u_Time - agent.timeAtSource) / TIME_LAYING_TRAIL, 0);
 
-
-    vec4 oldValue = imageLoad(img_TrailMap, final_pixel_coords);
     vec4 newValue = vec4(clamp(oldValue.rgb + pixel.rgb / 2.0, 0.0, 1.0), 1.0);
 
     imageStore(img_TrailMap, final_pixel_coords, newValue);
+   
 
     agents[ind] = agent;
 }
