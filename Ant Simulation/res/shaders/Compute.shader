@@ -228,7 +228,7 @@ vec4 sence(ivec2 pos)
             }
             else if (map == uvec4(255, 0, 0, 255)) 
             {
-                trail.r = 1.0;
+                trail.r = 100.0;
             }
             averageColor += trail;
         }
