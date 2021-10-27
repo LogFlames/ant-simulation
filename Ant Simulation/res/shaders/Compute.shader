@@ -36,7 +36,7 @@ const float senceDistance = 10.0;
 
 float rand(vec2 co);
 float gold_noise(vec2 xy, float seed, float seed_counter);
-vec4 sence(ivec2 pos);
+vec4 sence(ivec2 pos, int special);
 
 void main() {
     float seed_counter = 0.0;
