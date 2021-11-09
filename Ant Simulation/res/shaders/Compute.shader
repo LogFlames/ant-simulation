@@ -36,7 +36,7 @@ const float senceDistance = 10.0;
 
 float rand(vec2 co);
 float gold_noise(vec2 xy, float seed, float seed_counter);
-vec4 sence(ivec2 pos);
+vec4 sence(ivec2 pos, int special);
 
 void main() {
     float seed_counter = 0.0;
@@ -51,9 +51,9 @@ void main() {
     ivec2 new_pixel_coords = ivec2(agent.position);
 
     // Sence feromone concentration
-    vec4 left =   sence(ivec2(agent.position + vec2(cos(agent.angle + PI / 3.0), sin(agent.angle + PI / 3.0)) * senceDistance));
-    vec4 middle = sence(ivec2(agent.position + vec2(cos(agent.angle           ), sin(agent.angle           )) * senceDistance));
-    vec4 right =  sence(ivec2(agent.position + vec2(cos(agent.angle - PI / 3.0), sin(agent.angle - PI / 3.0)) * senceDistance));
+    vec4 left =   sence(ivec2(agent.position + vec2(cos(agent.angle + PI / 3.0), sin(agent.angle + PI / 3.0)) * senceDistance), agent.special);
+    vec4 middle = sence(ivec2(agent.position + vec2(cos(agent.angle           ), sin(agent.angle           )) * senceDistance), agent.special);
+    vec4 right =  sence(ivec2(agent.position + vec2(cos(agent.angle - PI / 3.0), sin(agent.angle - PI / 3.0)) * senceDistance), agent.special);
 
     float f_left =   (agent.hasFood == 1 ? left.g   : left.r);
     float f_right =  (agent.hasFood == 1 ? right.g  : right.r);
@@ -212,7 +212,7 @@ float gold_noise(vec2 xy, float seed, float seed_counter)
     return fract(sin(distance(xy * PHI, xy) * seed) * xy.x);
 }
 
-vec4 sence(ivec2 pos)
+vec4 sence(ivec2 pos, int special)
 {
     vec4 averageColor = vec4(0.0);
     for (int x = -5; x <= 5; x++)
@@ -234,6 +234,11 @@ vec4 sence(ivec2 pos)
                 trail.rg = vec2(-100.0, -100.0);
             }
             averageColor += trail;
+
+            if (special == 1) 
+            {
+                imageStore(img_Agents, pos + ivec2(x, y), vec4(1.0));
+            }
         }
     }
     averageColor /= 25.0;
