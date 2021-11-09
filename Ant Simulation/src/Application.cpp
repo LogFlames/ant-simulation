@@ -7,6 +7,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+//#include <chrono>
 
 #define ASSERT(x) if (!(x)) __debugbreak();
 #define GLCall(x) GLClearError();\
@@ -19,6 +20,10 @@
 #define AGENT_COUNT 1024
 
 #define MAP_PATH "res/textures/map_advanced_corridor_1024x512.png"
+
+#define SAVE_DATA true
+#define EXPORTED_CSVS_FOLDER "res/exported_csvs/"
+#define SAVE_DATA_EVERY_N_ROUNDS 240
 
 static void GLClearError()
 {
@@ -183,6 +188,19 @@ int main(void)
     float currentTime = 0.0f;
     float lastTime = 0.0f;
     float deltaTime;
+
+    if (SAVE_DATA) {
+        std::ofstream logFile;
+
+        logFile.open(EXPORTED_CSVS_FOLDER "results.csv", std::fstream::app);
+        std::time_t now = std::time(0);
+        char* dt = std::ctime(&now);
+        logFile << "Started at: " << dt << std::endl;
+        logFile << "Number of ants: " << AGENT_COUNT << std::endl;
+        logFile << "Map: " << MAP_PATH << std::endl;
+        logFile << "time,total_gathered_food,gathered_food_since_last_entry,number_of_ants_carrying_food" << std::endl;
+        logFile.close();    
+    }
 
     GLFWwindow* window;
 
@@ -428,8 +446,11 @@ int main(void)
     ASSERT(textureSizeLocation != -1);
     GLCall(glUniform2f(textureSizeLocation, static_cast<float>(mapWidth), static_cast<float>(mapHeight)));
 
+    int roundsCounter = 0;
     int roundsPerFrame = 0;
     int gatheredFood = 0;
+
+    bool spacePressedLastFrame = false;
 
     float time = 0.0;
 
@@ -473,6 +494,36 @@ int main(void)
             }
 
             GLCall(glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+
+            roundsCounter++;
+
+            if (SAVE_DATA && roundsCounter % SAVE_DATA_EVERY_N_ROUNDS == 0)
+            {
+                int gatheredFoodTheseRounds = 0;
+                int numberOfAntsCarryingFood = 0;
+                GLCall(glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo));
+                GLCall(glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(agents), agents));
+
+                for (int i = 0; i < AGENT_COUNT; i++) {
+                    while (agents[i].foodLeftAtHome > 0) {
+                        agents[i].foodLeftAtHome--;
+                        gatheredFood++;
+                        gatheredFoodTheseRounds++;
+                    }
+
+                    if (agents[i].hasFood == 1) {
+                        numberOfAntsCarryingFood++;
+                    }
+                }
+
+                GLCall(glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(agents), agents));
+
+                std::ofstream logFile;
+
+                logFile.open(EXPORTED_CSVS_FOLDER "results.csv", std::fstream::app);
+                logFile << time << "," << gatheredFood << "," << gatheredFoodTheseRounds << "," << numberOfAntsCarryingFood << std::endl;
+                logFile.close();
+            }
         }
 
         glfwPollEvents();
@@ -569,20 +620,15 @@ int main(void)
             roundsPerFrame = 32;
         }
 
-        if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_SPACE)) 
+        if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_SPACE) && !spacePressedLastFrame)
         {
+            spacePressedLastFrame = true;
+
             GLCall(glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo));
             GLCall(glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(agents), agents));
 
             for (int i = 0; i < AGENT_COUNT; i++) {
-                /*while (agents[i].foodLeftAtHome > 0) {
-                    agents[i].foodLeftAtHome--;
-                    gatheredFood++;
-                }
 
-                if (agents[i].hasFood == 2) {
-                    std::cout << agents[i].angle << std::endl;
-                }*/
 
                 agents[i].special = 0;
             }
@@ -592,6 +638,10 @@ int main(void)
             GLCall(glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(agents), agents));
 
             //std::cout << gatheredFood << "\n
+        }
+        else
+        {
+            spacePressedLastFrame = false;
         }
 
         // Render to the screen
@@ -606,6 +656,13 @@ int main(void)
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
+    }
+
+    if (SAVE_DATA) {
+        std::ofstream logFile;
+        logFile.open(EXPORTED_CSVS_FOLDER "results.csv", std::fstream::app);
+        logFile << std::endl << std::endl;
+        logFile.close();
     }
 
     glfwTerminate();

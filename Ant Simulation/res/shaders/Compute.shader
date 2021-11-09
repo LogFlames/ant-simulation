@@ -224,11 +224,14 @@ vec4 sence(ivec2 pos)
             uvec4 map = imageLoad(img_Map, pos + ivec2(x, y));
             if (map == uvec4(100, 100, 100, 255)) 
             {
-                trail.g = 1.0;
+                trail.g = 10000.0;
             }
             else if (map == uvec4(255, 0, 0, 255)) 
             {
-                trail.r = 100.0;
+                trail.r = 10000.0;
+            }
+            else if (map == uvec4(128, 128, 128, 255)) {
+                trail.rg = vec2(-100.0, -100.0);
             }
             averageColor += trail;
         }
