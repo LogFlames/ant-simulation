@@ -8,7 +8,7 @@ struct Agent
     int hasFood;
     int foodLeftAtHome;
     float timeAtSource;
-    float timeAtWallCollision;
+    float padding;
     int special;
 };
 
@@ -25,7 +25,10 @@ uniform float u_Time;
 uniform vec2 u_TextureSize;
 uniform int u_ArrayOffset;
 
-const bool USE_WALL_FEROMONE = true;
+// These will be replaced by the main script to either true or false
+// FOLLOW_RED_FEROMONE;
+// FOLLOW_GREEN_FEROMONE;
+// AVOID_WALLS;
 
 const float PI = 3.141592653589793238;
 const float PHI = 1.61803398874989484820459;
@@ -50,6 +53,7 @@ void main() {
     agent.position += vec2(cos(agent.angle), sin(agent.angle)) * 90.0 / 60.0;
     ivec2 new_pixel_coords = ivec2(agent.position);
 
+
     // Sence feromone concentration
     vec4 left =   sence(ivec2(agent.position + vec2(cos(agent.angle + PI / 3.0), sin(agent.angle + PI / 3.0)) * senceDistance), agent.special);
     vec4 middle = sence(ivec2(agent.position + vec2(cos(agent.angle           ), sin(agent.angle           )) * senceDistance), agent.special);
@@ -58,7 +62,20 @@ void main() {
     float f_left =   (agent.hasFood == 1 ? left.g   : left.r);
     float f_right =  (agent.hasFood == 1 ? right.g  : right.r);
     float f_middle = (agent.hasFood == 1 ? middle.g : middle.r);
-    
+
+    if (agent.hasFood == 1 && !FOLLOW_GREEN_FEROMONE) 
+    {
+        f_left = 0.0;
+        f_right = 0.0;
+        f_middle = 0.0;
+    }
+    else if (agent.hasFood == 0 && !FOLLOW_RED_FEROMONE)
+    {
+        f_left = 0.0;
+        f_right = 0.0;
+        f_middle = 0.0;
+    }
+
     float f_turning = 0.0;
 
     if (f_middle > f_left && f_middle > f_right) 
@@ -91,7 +108,6 @@ void main() {
 
          seed_counter++;
          agent.angle = (gold_noise(agent.position, u_Time, seed_counter) - 0.5) * PI;
-         agent.timeAtWallCollision = u_Time;
     }
     else if (agent.position.x >= u_TextureSize.x)
     {
@@ -99,7 +115,6 @@ void main() {
 
         seed_counter++;
         agent.angle = (gold_noise(agent.position, u_Time, seed_counter) + 0.5) * PI;
-        agent.timeAtWallCollision = u_Time;
     }
 
     // Bounce on map borders - vertical
@@ -109,7 +124,6 @@ void main() {
 
         seed_counter++;
         agent.angle = (gold_noise(agent.position, u_Time, seed_counter)) * PI;
-        agent.timeAtWallCollision = u_Time;
     }
     else if (agent.position.y >= u_TextureSize.y)
     {
@@ -117,7 +131,6 @@ void main() {
 
         seed_counter++;
         agent.angle = (gold_noise(agent.position, u_Time, seed_counter) + 1.0) * PI;
-        agent.timeAtWallCollision = u_Time;
     }
 
     // Interactions with map
@@ -135,7 +148,6 @@ void main() {
 
             seed_counter++;
             agent.angle += PI + ((gold_noise(agent.position, u_Time, seed_counter) - 0.5) * PI);
-            agent.timeAtWallCollision = u_Time;
             break;
         }
         else if (mapColor == uvec4(255, 0, 0, 255) && agent.hasFood == 0) // Food collision
@@ -155,11 +167,6 @@ void main() {
                 agent.angle += PI;
             }
             break;
-        }
-
-        if (u_Time - agent.timeAtWallCollision < TIME_ERASING_FEROMONES_AFTER_WALL_COLLISION && USE_WALL_FEROMONE)
-        {
-            imageStore(img_TrailMap, intermediate_pixel_coords, vec4(0.0));
         }
     }
 
@@ -230,7 +237,8 @@ vec4 sence(ivec2 pos, int special)
             {
                 trail.r = 10000.0;
             }
-            else if (map == uvec4(128, 128, 128, 255)) {
+            else if (map == uvec4(128, 128, 128, 255) && AVOID_WALLS) 
+            {
                 trail.rg = vec2(-100.0, -100.0);
             }
             averageColor += trail;

@@ -17,13 +17,17 @@
 
 #define PI 3.14159265358979f
 
-#define AGENT_COUNT 1024
+#define AGENT_COUNT 128
 
-#define MAP_PATH "res/textures/map_advanced_corridor_1024x512.png"
+#define MAP_PATH "res/textures/map_corridor_256x144.png"
 
 #define SAVE_DATA true
 #define EXPORTED_CSVS_FOLDER "res/exported_csvs/"
 #define SAVE_DATA_EVERY_N_ROUNDS 240
+
+#define FOLLOW_GREEN_FEROMONE "true"
+#define FOLLOW_RED_FEROMONE "true"
+#define AVOID_WALLS "false"
 
 static void GLClearError()
 {
@@ -100,6 +104,12 @@ static std::string ReadFile(const std::string& filepath) {
     }
 
     return ss.str();
+}
+
+void findReplaceAll(std::string& data, std::string search, std::string replaceString) {
+    while (data.find(search) != std::string::npos) {
+        data.replace(data.find(search), search.size(), replaceString);
+    }
 }
 
 static unsigned int CompileShader(unsigned int type, const std::string& source)
@@ -198,6 +208,9 @@ int main(void)
         logFile << "Started at: " << dt << std::endl;
         logFile << "Number of ants: " << AGENT_COUNT << std::endl;
         logFile << "Map: " << MAP_PATH << std::endl;
+        logFile << "FOLLOW_GREEN_FEROMONE: " << FOLLOW_GREEN_FEROMONE << std::endl;
+        logFile << "FOLLOW_RED_FEROMONE: " << FOLLOW_RED_FEROMONE << std::endl;
+        logFile << "AVOID_WALLS: " << AVOID_WALLS << std::endl;
         logFile << "time,total_gathered_food,gathered_food_since_last_entry,number_of_ants_carrying_food" << std::endl;
         logFile.close();    
     }
@@ -381,6 +394,9 @@ int main(void)
 
 
     std::string computeSource = ReadFile("res/shaders/Compute.shader");
+    findReplaceAll(computeSource, "FOLLOW_GREEN_FEROMONE", FOLLOW_GREEN_FEROMONE);
+    findReplaceAll(computeSource, "FOLLOW_RED_FEROMONE", FOLLOW_RED_FEROMONE);
+    findReplaceAll(computeSource, "AVOID_WALLS", AVOID_WALLS);
     unsigned int computeShader = CompileComputeShader(computeSource);
 
     GLCall(unsigned int computeProgram = glCreateProgram());
