@@ -17,9 +17,9 @@
 
 #define PI 3.14159265358979f
 
-#define AGENT_COUNT 128
+#define AGENT_COUNT 300
 
-#define MAP_PATH "res/textures/map_corridor_256x144.png"
+#define MAP_PATH "res/textures/testmap_simplemaze_1024x512.png"
 
 #define SAVE_DATA true
 #define EXPORTED_CSVS_FOLDER "res/exported_csvs/"
@@ -27,7 +27,7 @@
 
 #define FOLLOW_GREEN_FEROMONE "true"
 #define FOLLOW_RED_FEROMONE "true"
-#define AVOID_WALLS "false"
+#define AVOID_WALLS "true"
 
 static void GLClearError()
 {
@@ -206,7 +206,7 @@ int main(void)
         std::time_t now = std::time(0);
         char* dt = std::ctime(&now);
         logFile << "Started at: " << dt << std::endl;
-        logFile << "Number of ants: " << AGENT_COUNT << std::endl;
+        logFile << "Using random seed: " << randomSeed << std::endl;
         logFile << "Map: " << MAP_PATH << std::endl;
         logFile << "FOLLOW_GREEN_FEROMONE: " << FOLLOW_GREEN_FEROMONE << std::endl;
         logFile << "FOLLOW_RED_FEROMONE: " << FOLLOW_RED_FEROMONE << std::endl;
@@ -269,7 +269,8 @@ int main(void)
     for (int i = 0; i < mapWidth * mapHeight; i++) {
         if (mapData[i * 4 + 0] == 100 &&
             mapData[i * 4 + 1] == 100 &&
-            mapData[i * 4 + 2] == 100) {
+            mapData[i * 4 + 2] == 100 &&
+            mapData[i * 4 + 3] == 255) {
             homePixels.push_back(i);
         }
     }
@@ -633,7 +634,7 @@ int main(void)
         }
         else if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_9))
         {
-            roundsPerFrame = 32;
+            roundsPerFrame = 512;
         }
 
         if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_SPACE) && !spacePressedLastFrame)
