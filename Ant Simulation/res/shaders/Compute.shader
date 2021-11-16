@@ -142,7 +142,7 @@ void main() {
         ivec2 intermediate_pixel_coords = ivec2(pixel_coords.x + xDiff * step / maxDiff, pixel_coords.y + yDiff * step / maxDiff);
 
         uvec4 mapColor = imageLoad(img_Map, intermediate_pixel_coords);
-        if (mapColor.rgb == uvec3(128, 128, 128))  // Wall collision
+        if (mapColor == uvec4(128, 128, 128, 255))  // Wall collision
         {
             agent.position = vec2(pixel_coords);
 
@@ -150,15 +150,15 @@ void main() {
             agent.angle += PI + ((gold_noise(agent.position, u_Time, seed_counter) - 0.5) * PI);
             break;
         }
-        else if (mapColor.rgb == uvec3(255, 0, 0) && agent.hasFood == 0) // Food collision
+        else if (mapColor == uvec4(255, 0, 0, 255) && agent.hasFood == 0) // Food collision
         {
-            imageStore(img_Map, intermediate_pixel_coords, uvec3(0.0));
+            imageStore(img_Map, intermediate_pixel_coords, uvec4(0));
             agent.hasFood = 1;
             agent.timeAtSource = u_Time;
             agent.angle += PI;
             break;
         }
-        else if (mapColor.rgb == uvec3(100, 100, 100)) // Home collision
+        else if (mapColor == uvec4(100, 100, 100, 255)) // Home collision
         {
             agent.timeAtSource = u_Time;
             if (agent.hasFood == 1) {
@@ -229,15 +229,15 @@ vec4 sence(ivec2 pos, int special)
             vec4 trail = imageLoad(img_TrailMap, pos + ivec2(x, y));
 
             uvec4 map = imageLoad(img_Map, pos + ivec2(x, y));
-            if (map.rgb == uvec3(100, 100, 100)) 
+            if (map == uvec4(100, 100, 100, 255)) 
             {
                 trail.g = 10000.0;
             }
-            else if (map.rgb == uvec3(255, 0, 0, 255)) 
+            else if (map == uvec4(255, 0, 0, 255)) 
             {
                 trail.r = 10000.0;
             }
-            else if (map.rgb == uvec3(128, 128, 128) && AVOID_WALLS) 
+            else if (map == uvec4(128, 128, 128, 255) && AVOID_WALLS) 
             {
                 trail.rg = vec2(-100.0, -100.0);
             }
