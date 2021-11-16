@@ -17,17 +17,21 @@
 
 #define PI 3.14159265358979f
 
-#define AGENT_COUNT 300
+int AGENT_COUNT = 3000;
 
-#define MAP_PATH "res/textures/testmap_simplemaze_1024x512.png"
+std::string MAP_PATH = "res/textures/testmap_simplemaze_1024x512.png";
 
-#define SAVE_DATA true
+// #define SAVE_DATA true
 #define EXPORTED_CSVS_FOLDER "res/exported_csvs/"
+std::string logFileName = "results.csv";
 #define SAVE_DATA_EVERY_N_ROUNDS 240
+#define END_SIMULATION_AFTER_N_ROUNDS 160000
 
 #define FOLLOW_GREEN_FEROMONE "true"
 #define FOLLOW_RED_FEROMONE "true"
 #define AVOID_WALLS "true"
+
+bool SAVE_DATA = false;
 
 static void GLClearError()
 {
@@ -187,13 +191,39 @@ struct Agent {
     int special;
 };
 
-Agent agents[AGENT_COUNT];
+std::vector<Agent> agents;
 
-int main(void)
+int main(int argc, char** argv)
 {
     time_t randomSeed = std::time(NULL);
     std::cout << "Using random seed: " << randomSeed << std::endl;
     std::srand(randomSeed);
+
+    if (argc > 1)
+    {
+        if (argc != 4)
+        {
+            std::cout << "Unexpected number of arguments. Expected 'map path' num_ants export_name";
+            return 1;
+        }
+
+        SAVE_DATA = true;
+
+        std::string map = argv[1];
+        std::cout << map << std::endl;
+
+        int agent_count = std::stoi(argv[2]);
+
+        std::string export_name = argv[3];
+
+        MAP_PATH = map;
+        AGENT_COUNT = agent_count;
+
+        logFileName = "result_" + std::to_string(randomSeed) + "_ac" + std::to_string(AGENT_COUNT) + "_" + export_name + ".csv";
+        std::cout << logFileName << std::endl;
+    }
+
+    agents.reserve(AGENT_COUNT);
 
     float currentTime = 0.0f;
     float lastTime = 0.0f;
@@ -202,7 +232,7 @@ int main(void)
     if (SAVE_DATA) {
         std::ofstream logFile;
 
-        logFile.open(EXPORTED_CSVS_FOLDER "results.csv", std::fstream::app);
+        logFile.open(EXPORTED_CSVS_FOLDER + logFileName, std::fstream::app);
         std::time_t now = std::time(0);
         char* dt = std::ctime(&now);
         logFile << "Started at: " << dt << std::endl;
@@ -253,7 +283,8 @@ int main(void)
     stbi_set_flip_vertically_on_load(true);
 
     int mapWidth, mapHeight, mapNrChannels;
-    unsigned char* mapData = stbi_load(MAP_PATH, &mapWidth, &mapHeight, &mapNrChannels, STBI_rgb_alpha);
+    const char* constMapPath = MAP_PATH.c_str();
+    unsigned char* mapData = stbi_load(constMapPath, &mapWidth, &mapHeight, &mapNrChannels, STBI_rgb_alpha);
 
     if (!mapData) {
         std::cout << "Failed to load map texture." << std::endl;
@@ -284,7 +315,7 @@ int main(void)
 
         float distance = std::sqrt(static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX)) * static_cast<float>(std::min(mapWidth, mapHeight) / 2);
         float angle = static_cast<float>(std::rand() % static_cast<int>(2.0f * PI * 1000.0f)) / 1000.0f;
-        agents[i] = { { x, y }, angle + 1.0f * PI / 3.0f, 0, 0, 0.0f, -1000.0f, 0 };
+        agents.push_back({ { x, y }, angle + 1.0f * PI / 3.0f, 0, 0, 0.0f, -1000.0f, 0 });
     }
 
     agents[0].special = 1;
@@ -334,7 +365,7 @@ int main(void)
     unsigned int ssbo;
     GLCall(glGenBuffers(1, &ssbo));
     GLCall(glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo));
-    GLCall(glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(agents), agents, GL_DYNAMIC_DRAW));
+    GLCall(glBufferData(GL_SHADER_STORAGE_BUFFER, agents.size() * sizeof(Agent), static_cast<void*>(agents.data()), GL_DYNAMIC_DRAW));
     GLCall(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo));
     GLCall(glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0));
 
@@ -464,15 +495,22 @@ int main(void)
     GLCall(glUniform2f(textureSizeLocation, static_cast<float>(mapWidth), static_cast<float>(mapHeight)));
 
     int roundsCounter = 0;
-    int roundsPerFrame = 0;
+    int roundsPerFrame = (SAVE_DATA ? 512 : 0);
     int gatheredFood = 0;
 
     bool spacePressedLastFrame = false;
 
     float time = 0.0;
 
-    while (!glfwWindowShouldClose(window))
+    bool runningWindow = true;
+
+    while (runningWindow)
     {
+        if (glfwWindowShouldClose(window))
+        {
+            runningWindow = false;
+            break;
+        }
         currentTime = time; // static_cast<float>(glfwGetTime());
         deltaTime = currentTime - lastTime;
         lastTime = currentTime;
@@ -519,7 +557,7 @@ int main(void)
                 int gatheredFoodTheseRounds = 0;
                 int numberOfAntsCarryingFood = 0;
                 GLCall(glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo));
-                GLCall(glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(agents), agents));
+                GLCall(glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, agents.size() * sizeof(Agent), static_cast<void*>(agents.data())));
 
                 for (int i = 0; i < AGENT_COUNT; i++) {
                     while (agents[i].foodLeftAtHome > 0) {
@@ -533,13 +571,18 @@ int main(void)
                     }
                 }
 
-                GLCall(glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(agents), agents));
+                GLCall(glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, agents.size() * sizeof(Agent), static_cast<void*>(agents.data())));
 
                 std::ofstream logFile;
 
-                logFile.open(EXPORTED_CSVS_FOLDER "results.csv", std::fstream::app);
+                logFile.open(EXPORTED_CSVS_FOLDER + logFileName, std::fstream::app);
                 logFile << time << "," << gatheredFood << "," << gatheredFoodTheseRounds << "," << numberOfAntsCarryingFood << std::endl;
                 logFile.close();
+            }
+
+            if (roundsCounter >= END_SIMULATION_AFTER_N_ROUNDS && END_SIMULATION_AFTER_N_ROUNDS != -1 && SAVE_DATA) 
+            {
+                runningWindow = false;
             }
         }
 
@@ -621,7 +664,7 @@ int main(void)
             roundsPerFrame = 8;
         }
         else if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_6))
-        {
+	    {
             roundsPerFrame = 10;
         }
         else if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_7))
@@ -642,17 +685,16 @@ int main(void)
             spacePressedLastFrame = true;
 
             GLCall(glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo));
-            GLCall(glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(agents), agents));
+            GLCall(glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(Agent) * agents.size(), static_cast<void*>(agents.data())));
 
-            for (int i = 0; i < AGENT_COUNT; i++) {
-
-
+            for (int i = 0; i < AGENT_COUNT; i++) 
+            {
                 agents[i].special = 0;
             }
 
             agents[std::rand() % AGENT_COUNT].special = 1;
 
-            GLCall(glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(agents), agents));
+            GLCall(glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(Agent) * agents.size(), static_cast<void*>(agents.data())));
 
             //std::cout << gatheredFood << "\n
         }
@@ -677,7 +719,7 @@ int main(void)
 
     if (SAVE_DATA) {
         std::ofstream logFile;
-        logFile.open(EXPORTED_CSVS_FOLDER "results.csv", std::fstream::app);
+        logFile.open(EXPORTED_CSVS_FOLDER + logFileName, std::fstream::app);
         logFile << std::endl << std::endl;
         logFile.close();
     }
