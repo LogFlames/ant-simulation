@@ -576,7 +576,7 @@ int main(int argc, char** argv)
                 std::ofstream logFile;
 
                 logFile.open(EXPORTED_CSVS_FOLDER + logFileName, std::fstream::app);
-                logFile << time << "," << gatheredFood << "," << gatheredFoodTheseRounds << "," << numberOfAntsCarryingFood << std::endl;
+                logFile << time << " " << gatheredFood << " " << gatheredFoodTheseRounds << " " << numberOfAntsCarryingFood << std::endl;
                 logFile.close();
             }
 
