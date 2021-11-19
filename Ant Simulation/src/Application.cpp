@@ -25,7 +25,7 @@ std::string MAP_PATH = "res/textures/testmap_simplemaze_1024x512.png";
 #define EXPORTED_CSVS_FOLDER "res/exported_csvs/"
 std::string logFileName = "results.csv";
 #define SAVE_DATA_EVERY_N_ROUNDS 240
-#define END_SIMULATION_AFTER_N_ROUNDS 160000
+#define END_SIMULATION_AFTER_N_ROUNDS 163200
 
 #define FOLLOW_GREEN_FEROMONE "true"
 #define FOLLOW_RED_FEROMONE "true"
@@ -221,6 +221,7 @@ int main(int argc, char** argv)
 
         logFileName = "result_" + std::to_string(randomSeed) + "_ac" + std::to_string(AGENT_COUNT) + "_" + export_name + ".csv";
         std::cout << logFileName << std::endl;
+        std::cout << "Running map: " << MAP_PATH << std::endl << "    with " << AGENT_COUNT << " number of agents." << std::endl;
     }
 
     agents.reserve(AGENT_COUNT);
@@ -241,6 +242,7 @@ int main(int argc, char** argv)
         logFile << "FOLLOW_GREEN_FEROMONE: " << FOLLOW_GREEN_FEROMONE << std::endl;
         logFile << "FOLLOW_RED_FEROMONE: " << FOLLOW_RED_FEROMONE << std::endl;
         logFile << "AVOID_WALLS: " << AVOID_WALLS << std::endl;
+        logFile << "AGENT_COUNT: " << AGENT_COUNT << std::endl;
         logFile << "time,total_gathered_food,gathered_food_since_last_entry,number_of_ants_carrying_food" << std::endl;
         logFile.close();    
     }
