@@ -6,7 +6,7 @@ FOR %%m IN (.\res\textures\testmap_split_path_1024x512.png .\res\textures\testma
 		ECHO Calculating map %%m
 		FOR /L %%n IN (1, 1, 40) DO ( 
 			ECHO     Running %%n
-			"..\\bin\\Win32\\Debug\\Ant Simulation.exe" %%m %%a %%n
+			"..\\bin\\Win32\\Release\\Ant Simulation.exe" %%m %%a %%n
 		)
 	)
 )
