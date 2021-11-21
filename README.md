@@ -1,5 +1,5 @@
 # Ant-Simulation
-## An upper secondary school project
+## A diploma project
 This is a last year project done at [Norra Real](https://norrarealsgymnasium.stockholm.se/) in Stockholm.
 
 ## Running
