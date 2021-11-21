@@ -32,6 +32,9 @@ std::string logFileName = "results.csv";
 #define AVOID_WALLS "true"
 
 bool SAVE_DATA = false;
+// If this variable is one the simulation will end when all the food has been collected (or the maximum number of rounds has been reached)
+// If this variable is greater than one the simualtion will end according to the END_SIMULATION_AFTER_N_ROUNDS variable (since it is impossible for the ants to collect more food than is on the map)
+const double END_SIMULATION_AFTER_FOODP_COLLECTED = 0.995;
 
 static void GLClearError()
 {
@@ -243,6 +246,7 @@ int main(int argc, char** argv)
         logFile << "FOLLOW_RED_FEROMONE: " << FOLLOW_RED_FEROMONE << std::endl;
         logFile << "AVOID_WALLS: " << AVOID_WALLS << std::endl;
         logFile << "AGENT_COUNT: " << AGENT_COUNT << std::endl;
+        logFile << "END_SIMULATION_AFTER_FOODP_COLLECTED: " << END_SIMULATION_AFTER_FOODP_COLLECTED << std::endl;
         logFile << "time,total_gathered_food,gathered_food_since_last_entry,number_of_ants_carrying_food" << std::endl;
         logFile.close();    
     }
@@ -297,6 +301,8 @@ int main(int argc, char** argv)
     int screenWidth = mapWidth;
     int screenHeight = mapHeight;
 
+    int foodOnMap = 0;
+
     // Find home pixels
     std::vector<int> homePixels = {};
     for (int i = 0; i < mapWidth * mapHeight; i++) {
@@ -305,6 +311,12 @@ int main(int argc, char** argv)
             mapData[i * 4 + 2] == 100 &&
             mapData[i * 4 + 3] == 255) {
             homePixels.push_back(i);
+        }
+        if (mapData[i * 4 + 0] == 255 &&
+            mapData[i * 4 + 1] == 0 &&
+            mapData[i * 4 + 2] == 0 &&
+            mapData[i * 4 + 3] == 255) {
+            foodOnMap++;
         }
     }
 
@@ -582,7 +594,7 @@ int main(int argc, char** argv)
                 logFile.close();
             }
 
-            if (roundsCounter >= END_SIMULATION_AFTER_N_ROUNDS && END_SIMULATION_AFTER_N_ROUNDS != -1 && SAVE_DATA) 
+            if ((roundsCounter >= END_SIMULATION_AFTER_N_ROUNDS && END_SIMULATION_AFTER_N_ROUNDS != -1 && SAVE_DATA) || (gatheredFood / foodOnMap >= END_SIMULATION_AFTER_FOODP_COLLECTED && SAVE_DATA)) 
             {
                 runningWindow = false;
             }
