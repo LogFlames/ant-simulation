@@ -27,8 +27,8 @@ std::string logFileName = "results.csv";
 #define SAVE_DATA_EVERY_N_ROUNDS 240
 #define END_SIMULATION_AFTER_N_ROUNDS 163200
 
-#define FOLLOW_GREEN_FEROMONE "true"
-#define FOLLOW_RED_FEROMONE "true"
+#define FOLLOW_GREEN_PHEROMONE "false"
+#define FOLLOW_RED_PHEROMONE "false"
 #define AVOID_WALLS "true"
 
 bool SAVE_DATA = false;
@@ -242,8 +242,8 @@ int main(int argc, char** argv)
         logFile << "Started at: " << dt << std::endl;
         logFile << "Using random seed: " << randomSeed << std::endl;
         logFile << "Map: " << MAP_PATH << std::endl;
-        logFile << "FOLLOW_GREEN_FEROMONE: " << FOLLOW_GREEN_FEROMONE << std::endl;
-        logFile << "FOLLOW_RED_FEROMONE: " << FOLLOW_RED_FEROMONE << std::endl;
+        logFile << "FOLLOW_GREEN_PHEROMONE: " << FOLLOW_GREEN_PHEROMONE << std::endl;
+        logFile << "FOLLOW_RED_PHEROMONE: " << FOLLOW_RED_PHEROMONE << std::endl;
         logFile << "AVOID_WALLS: " << AVOID_WALLS << std::endl;
         logFile << "AGENT_COUNT: " << AGENT_COUNT << std::endl;
         logFile << "END_SIMULATION_AFTER_FOODP_COLLECTED: " << END_SIMULATION_AFTER_FOODP_COLLECTED << std::endl;
@@ -440,8 +440,8 @@ int main(int argc, char** argv)
 
 
     std::string computeSource = ReadFile("res/shaders/Compute.shader");
-    findReplaceAll(computeSource, "FOLLOW_GREEN_FEROMONE", FOLLOW_GREEN_FEROMONE);
-    findReplaceAll(computeSource, "FOLLOW_RED_FEROMONE", FOLLOW_RED_FEROMONE);
+    findReplaceAll(computeSource, "FOLLOW_GREEN_PHEROMONE", FOLLOW_GREEN_PHEROMONE);
+    findReplaceAll(computeSource, "FOLLOW_RED_PHEROMONE", FOLLOW_RED_PHEROMONE);
     findReplaceAll(computeSource, "AVOID_WALLS", AVOID_WALLS);
     unsigned int computeShader = CompileComputeShader(computeSource);
 

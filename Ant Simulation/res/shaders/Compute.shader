@@ -26,8 +26,8 @@ uniform vec2 u_TextureSize;
 uniform int u_ArrayOffset;
 
 // These will be replaced by the main script to either true or false
-// FOLLOW_RED_FEROMONE;
-// FOLLOW_GREEN_FEROMONE;
+// FOLLOW_RED_PHEROMONE;
+// FOLLOW_GREEN_PHEROMONE;
 // AVOID_WALLS;
 
 const float PI = 3.141592653589793238;
@@ -62,19 +62,6 @@ void main() {
     float f_left =   (agent.hasFood == 1 ? left.g   : left.r);
     float f_right =  (agent.hasFood == 1 ? right.g  : right.r);
     float f_middle = (agent.hasFood == 1 ? middle.g : middle.r);
-
-    if (agent.hasFood == 1 && !FOLLOW_GREEN_FEROMONE) 
-    {
-        f_left = 0.0;
-        f_right = 0.0;
-        f_middle = 0.0;
-    }
-    else if (agent.hasFood == 0 && !FOLLOW_RED_FEROMONE)
-    {
-        f_left = 0.0;
-        f_right = 0.0;
-        f_middle = 0.0;
-    }
 
     float f_turning = 0.0;
 
@@ -227,6 +214,15 @@ vec4 sence(ivec2 pos, int special)
         for (int y = -5; y <= 5; y++)
         {
             vec4 trail = imageLoad(img_TrailMap, pos + ivec2(x, y));
+
+            if (!FOLLOW_RED_PHEROMONE) 
+            {
+                trail.r = 0.0;
+            }
+            if (!FOLLOW_GREEN_PHEROMONE)
+            {
+                trail.g = 0.0;
+            }
 
             uvec4 map = imageLoad(img_Map, pos + ivec2(x, y));
             if (map == uvec4(100, 100, 100, 255)) 
