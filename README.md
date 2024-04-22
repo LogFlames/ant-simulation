@@ -1,6 +1,6 @@
 # Ant-Simulation
 ## A diploma project
-This is a last year project done at [Norra Real](https://norrarealsgymnasium.stockholm.se/) in Stockholm.
+This is a last year project done at [Norra Real](https://norrarealsgymnasium.stockholm.se/) in Stockholm. The report can be [read here](Gyarb_2021___N__A__Dahlfors_och_E__Lundell.pdf), as well as in the repository.
 
 ## Running
 The project should be setup correctly. To run the code simply clone the repo, open the solution in VS2019 with C++ Desktop Development installed and run the code. Dependencies are only included for Windows but since it is written in c++ and OpenGL, it should be possible to run cross-plattform.
